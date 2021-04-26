@@ -226,7 +226,7 @@ if __name__ == "__main__":
 
     data_obj = Data()
     data_obj.build_alphabet(datafile)
-    # data_obj.trimRareWords()
+    data_obj.trimRareWords()
 
     trainer = QATrainer(data_obj)
     trainer.trainIters()
