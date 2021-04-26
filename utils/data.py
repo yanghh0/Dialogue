@@ -10,7 +10,7 @@ from utils.functions import normalizeString, zeroPadding, binaryMatrix
 class Data:
     def __init__(self):
         self.word_alphabet = Alphabet('word')
-        self.max_sentence_length = 10
+        self.max_sentence_length = 20
         self.pairs = []
 
     def filterPair(self, pair):
@@ -131,6 +131,6 @@ if __name__ == "__main__":
     print("mask:", mask)
     print("max_target_len:", max_target_len)
 
-    yield_training_batch = obj.data_generator(batch_size=8)
+    yield_training_batch = obj.data_generator(batch_size=64)
     for iteration in range(10):
         print(next(yield_training_batch))
