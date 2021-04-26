@@ -12,8 +12,7 @@ import random
 from torch import optim
 import torch.nn.functional as F
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
-from seq2seq_gru.embedding import WordEmbedding
-from Utils.data import Data
+from utils.data import Data
 
 
 # Default tokens
@@ -27,12 +26,12 @@ class QATrainer:
     def __init__(self, data_obj, load_model_name=None, use_gpu=True):
         # parameter of network
         self.data_obj = data_obj
-        self.vocab_size = data_obj.word_alphabet.num_tokens
+        self.vocab_size = data_obj.word_alphabet.num_words
         self.hidden_size = 500
         self.encoder_n_layers = 2
         self.decoder_n_layers = 2
         self.dropout = 0.1
-        self.batch_size = 32
+        self.batch_size = 64
 
         # Load model if a loadFilename is provided
         self.load_model_name = load_model_name
@@ -49,7 +48,7 @@ class QATrainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # network
-        self.embedding = WordEmbedding(vocab_size=self.vocab_size, embedding_dim=self.hidden_size)
+        self.embedding = nn.Embedding(num_embeddings=self.vocab_size, embedding_dim=self.hidden_size)
         self.encoder = EncoderRNN(hidden_size=self.hidden_size, 
                                   embedding=self.embedding, 
                                   n_layers=self.encoder_n_layers, 
@@ -190,10 +189,8 @@ class QATrainer:
         # Training loop
         print("Training...")
         for iteration in range(start_iteration, self.n_iteration + 1):
-            training_batch = next(yield_training_batch)
-
             # Extract fields from batch
-            inputs, inputs_lengths, outputs, masks, max_target_len = training_batch
+            inputs, inputs_lengths, outputs, masks, max_target_len = next(yield_training_batch)
 
             # Run a training iteration with batch
             loss = self.train(inputs, inputs_lengths, outputs, masks, max_target_len)
