@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from seq2seq_gru.attention import LuongAttention
-from seq2seq_gru.embedding import WordEmbedding
 
 
 class EncoderRNN(nn.Module):
@@ -117,7 +116,7 @@ if __name__ == "__main__":
     use_gpu = True
     inputs = inputs.t()  # (b,t) -> (t,b)
 
-    embedding = WordEmbedding(vocab_size=10, embedding_dim=6)
+    embedding = nn.Embedding(num_embeddings=10, embedding_dim=6)
     encoder = EncoderRNN(hidden_size=6, embedding=embedding)
     decoder = LuongAttnDecoderRNN(embedding=embedding, hidden_size=6, vocab_size=10)
     if use_gpu:
