@@ -214,7 +214,7 @@ class QATrainer:
                     'decoder_optimizer': self.decoder_optimizer.state_dict(),
                     'loss': loss
                 }
-                torch.save(checkpoint, os.path.join("Checkpoint", model_name))
+                torch.save(checkpoint, os.path.join("checkpoint", model_name))
 
 
 if __name__ == "__main__":
