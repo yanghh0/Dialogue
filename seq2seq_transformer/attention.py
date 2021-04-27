@@ -33,7 +33,9 @@ class MultiHeadAttention(nn.Module):
     def scaled_dot_product(self, q, k, v, mask=None):
         # QK^T/sqrt(dim)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(q.size(-1))
-        scores = scores.masked_fill(mask == 0, -1e9) if mask else scores
+        if mask is not None:
+            mask = mask.unsqueeze(1)
+            scores = scores.masked_fill(mask == 0, -1e9)
         attn = self.dropout(F.softmax(scores, dim=-1))
         output = torch.matmul(attn, v)
         return output, attn
