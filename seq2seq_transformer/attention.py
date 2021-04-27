@@ -54,6 +54,8 @@ class MultiHeadAttention(nn.Module):
         x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head*self.d_v)
         x = self.fc(x)
         x = self.dropout(x)
+
+        # Add & Norm
         x += residual
         x = self.layer_norm(x)
 
