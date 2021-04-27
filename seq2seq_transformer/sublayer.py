@@ -20,13 +20,13 @@ class SublayerConnection(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
-    def forward(self, Q, K, V, mask=None):
-        residual = Q
-        X, attn = self.attention(Q, K, V, mask)
-        X = self.dropout(X)
-        X += residual
-        X = self.layer_norm(X)
-        return X, attn
+    def forward(self, q, k, v, mask=None):
+        residual = q
+        x, attn = self.attention(q, k, v, mask)
+        x = self.dropout(x)
+        x += residual
+        x = self.layer_norm(x)
+        return x, attn
 
 
 if __name__ == "__main__":
