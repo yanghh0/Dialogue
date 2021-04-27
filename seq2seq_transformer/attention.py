@@ -31,9 +31,10 @@ class MultiHeadAttention(nn.Module):
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
     def scaled_dot_product(self, q, k, v, mask=None):
-        # QK^T/sqrt(dim)
+        # QK^T/sqrt(dim) -> shape of score: (b, n_head, t, t)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(q.size(-1))
         if mask is not None:
+            # shape of mask: (b, 1, 1, t)
             mask = mask.unsqueeze(1)
             scores = scores.masked_fill(mask == 0, -1e9)
         attn = self.dropout(F.softmax(scores, dim=-1))
@@ -47,6 +48,7 @@ class MultiHeadAttention(nn.Module):
 
         residual = q
 
+        # shape of q, k, v: (b, n_head, t, h')
         q = self.w_qs(q).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
         k = self.w_ks(k).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
         v = self.w_vs(v).view(batch_size, -1, self.n_head, self.d_v).transpose(1, 2)
