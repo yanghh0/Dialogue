@@ -122,6 +122,7 @@ class QATrainer:
         print('Initializing ...')
         start_iteration = 1
         print_loss = 0
+        min_loss = 100000.0
 
         # Training loop
         print("Training...")
@@ -140,7 +141,8 @@ class QATrainer:
                 print_loss = 0
 
             # Save checkpoint
-            if iteration % self.save_every == 0:
+            if loss < min_loss:
+                min_loss = loss
                 model_name = 'model_loss_{:.3f}.chkpt'.format(loss)
                 checkpoint = {
                     'encoder': self.encoder.state_dict(),
