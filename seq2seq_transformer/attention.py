@@ -28,6 +28,7 @@ class MultiHeadAttention(nn.Module):
         self.w_vs = nn.Linear(in_features=d_model, out_features=d_model, bias=False)
         self.fc = nn.Linear(in_features=d_model, out_features=d_model, bias=False)
         self.dropout = nn.Dropout(p=dropout)
+        self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
     def scaled_dot_product(self, q, k, v, mask=None):
         # QK^T/sqrt(dim)
@@ -42,6 +43,8 @@ class MultiHeadAttention(nn.Module):
         """
         batch_size = q.size(0)
 
+        residual = q
+
         q = self.w_qs(q).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
         k = self.w_ks(k).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
         v = self.w_vs(v).view(batch_size, -1, self.n_head, self.d_v).transpose(1, 2)
@@ -50,6 +53,9 @@ class MultiHeadAttention(nn.Module):
 
         x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head*self.d_v)
         x = self.fc(x)
+        x = self.dropout(x)
+        x += residual
+        x = self.layer_norm(x)
 
         return x, attn
 
