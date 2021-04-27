@@ -6,6 +6,7 @@ sys.path.append("..")
 
 import os
 import torch
+import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 from utils.data import Data
@@ -21,7 +22,7 @@ UNK_token = 3  # Unkonw token
 
 
 class QATrainer:
-    def __init__(self, data_obj, use_gpu=True):
+    def __init__(self, data_obj, use_gpu=True, embed_sharing=True):
         # parameter of network
         self.data_obj = data_obj
         self.vocab_size = data_obj.word_alphabet.num_words
@@ -42,6 +43,14 @@ class QATrainer:
         # network
         self.encoder = Encoder(self.vocab_size, self.d_model, self.d_inner, self.n_head, self.n_layers)
         self.decoder = Decoder(self.vocab_size, self.d_model, self.d_inner, self.n_head, self.n_layers)
+        for p in self.encoder.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p) 
+        for p in self.decoder.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p) 
+        if embed_sharing:
+            self.encoder.embedding.weight = self.decoder.embedding.weight
 
         # optimizer
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=self.learning_rate)
