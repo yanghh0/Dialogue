@@ -29,29 +29,29 @@ class MultiHeadAttention(nn.Module):
         self.fc = nn.Linear(in_features=d_model, out_features=d_model, bias=False)
         self.dropout = nn.Dropout(p=dropout)
 
-    def scaled_dot_product(self, Q, K, V, mask=None):
+    def scaled_dot_product(self, q, k, v, mask=None):
         # QK^T/sqrt(dim)
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(Q.size(-1))
+        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(q.size(-1))
         scores = scores.masked_fill(mask == 0, -1e9) if mask else scores
         attn = self.dropout(F.softmax(scores, dim=-1))
-        output = torch.matmul(attn, V)
+        output = torch.matmul(attn, v)
         return output, attn
 
-    def forward(self, Q, K, V, mask=None):
-        """shape of Q, K, V: (b, t, h)
+    def forward(self, q, k, v, mask=None):
+        """shape of q, k, v: (b, t, h)
         """
-        batch_size = Q.size(0)
+        batch_size = q.size(0)
 
-        Q = self.w_qs(Q).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
-        K = self.w_ks(K).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
-        V = self.w_vs(V).view(batch_size, -1, self.n_head, self.d_v).transpose(1, 2)
+        q = self.w_qs(q).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
+        k = self.w_ks(k).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
+        v = self.w_vs(v).view(batch_size, -1, self.n_head, self.d_v).transpose(1, 2)
 
-        X, attn = self.scaled_dot_product(Q, K, V, mask=mask)
+        x, attn = self.scaled_dot_product(q, k, v, mask=mask)
 
-        X = X.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head*self.d_v)
-        X = self.fc(X)
+        x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head*self.d_v)
+        x = self.fc(x)
 
-        return X, attn
+        return x, attn
 
 
 if __name__ == "__main__":
