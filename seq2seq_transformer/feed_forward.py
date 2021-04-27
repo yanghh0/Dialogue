@@ -26,6 +26,8 @@ class PositionwiseFeedForward(nn.Module):
         x = F.relu(x)
         x = self.w_2(x)
         x = self.dropout(x)
+
+        # Add & Norm
         x += residual
         x = self.layer_norm(x)
 
