@@ -57,7 +57,6 @@ class Encoder(nn.Module):
             EncoderLayer(d_model, d_inner, n_head, dropout=dropout)
             for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
-        self.d_model = d_model
 
     def forward(self, src_seqs, src_mask, return_attns=False):
         enc_outputs = self.embedding(src_seqs)
@@ -84,7 +83,7 @@ class Decoder(nn.Module):
             DecoderLayer(d_model, d_inner, n_head, dropout=dropout)
             for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
-        self.d_model = d_model
+        self.fc = nn.Linear(d_model, vocab_size, bias=False)
 
     def forward(self, trg_seqs, trg_mask, enc_outputs, src_mask, return_attns=False):
         dec_outputs = self.embedding(trg_seqs)
@@ -96,7 +95,7 @@ class Decoder(nn.Module):
             dec_outputs, dec_slf_attn, dec_enc_attn = dec_layer(
                 dec_outputs, enc_outputs, slf_attn_mask=trg_mask, dec_enc_attn_mask=src_mask)
 
-        return dec_outputs
+        return self.fc(dec_outputs)
 
 
 if __name__ == "__main__":
