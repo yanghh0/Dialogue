@@ -46,12 +46,12 @@ class MultiHeadAttention(nn.Module):
         K = self.w_ks(K).view(batch_size, -1, self.n_head, self.d_k).transpose(1, 2)
         V = self.w_vs(V).view(batch_size, -1, self.n_head, self.d_v).transpose(1, 2)
 
-        x, attn = self.scaled_dot_product(Q, K, V, mask=mask)
+        X, attn = self.scaled_dot_product(Q, K, V, mask=mask)
 
-        x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head*self.d_v)
-        x = self.fc(x)
+        X = X.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head*self.d_v)
+        X = self.fc(X)
 
-        return x
+        return X, attn
 
 
 if __name__ == "__main__":
