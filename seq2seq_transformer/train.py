@@ -108,6 +108,9 @@ class QATrainer:
 
         return loss.item()
 
+    def train_with_teacher_forcing(inputs, targets):
+        pass
+
     def trainIters(self):
         print("Starting Training!")
         
@@ -141,7 +144,7 @@ class QATrainer:
                 print_loss = 0
 
             # Save checkpoint
-            if loss < min_loss:
+            if iteration >= self.n_iteration // 2 and loss < min_loss:
                 min_loss = loss
                 model_name = 'model_loss_{:.3f}.chkpt'.format(loss)
                 checkpoint = {
