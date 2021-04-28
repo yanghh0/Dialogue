@@ -30,7 +30,7 @@ class QATrainer:
         self.d_inner = 2048
         self.n_head = 8
         self.n_layers = 6
-        self.batch_size = 64
+        self.batch_size = 128
 
         # parameter of training
         self.learning_rate = 0.0001
