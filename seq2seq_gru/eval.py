@@ -6,8 +6,8 @@ sys.path.append("..")
 
 import os
 import torch
+import torch.nn as nn
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
-from seq2seq_gru.embedding import WordEmbedding
 from utils.functions import normalizeString
 from utils.data import Data
 
@@ -25,7 +25,7 @@ class QAEvaluator:
     def __init__(self, data_obj, load_model_name, use_gpu=False):
         self.load_model_name = load_model_name
         self.data_obj = data_obj
-        self.vocab_size = data_obj.word_alphabet.num_tokens
+        self.vocab_size = data_obj.word_alphabet.num_words
         self.hidden_size = 500
         self.encoder_n_layers = 2
         self.decoder_n_layers = 2
@@ -34,7 +34,7 @@ class QAEvaluator:
         self.device = torch.device("cuda" if use_gpu else "cpu")
 
         # network
-        self.embedding = WordEmbedding(vocab_size=self.vocab_size, embedding_dim=self.hidden_size)
+        self.embedding = nn.Embedding(num_embeddings=self.vocab_size, embedding_dim=self.hidden_size)
         self.encoder = EncoderRNN(hidden_size=self.hidden_size, 
                                   embedding=self.embedding, 
                                   n_layers=self.encoder_n_layers, 
@@ -61,30 +61,34 @@ class QAEvaluator:
         self.encoder.eval()
         self.decoder.eval()
 
-        # Forward input through encoder model
-        encoder_outputs, encoder_hidden = self.encoder(inputs, inputs_length)
+        with torch.no_grad():
 
-        # Prepare encoder's final hidden layer to be first hidden input to the decoder
-        decoder_hidden = encoder_hidden[:self.decoder_n_layers]
+            # Forward input through encoder model
+            encoder_outputs, encoder_hidden = self.encoder(inputs, inputs_length)
 
-        # Initialize decoder input with SOS_token
-        decoder_input = torch.ones(1, 1, device=self.device, dtype=torch.long) * SOS_token
+            # Prepare encoder's final hidden layer to be first hidden input to the decoder
+            decoder_hidden = encoder_hidden[:self.decoder_n_layers]
 
-        # Initialize tensors to append decoded words to
-        all_tokens = torch.zeros([0], device=self.device, dtype=torch.long)
-        all_scores = torch.zeros([0], device=self.device)
+            # Initialize decoder input with SOS_token
+            decoder_input = torch.ones(1, 1, device=self.device, dtype=torch.long) * SOS_token
 
-        # Iteratively decode one word token at a time
-        for _ in range(max_length):
-            # Forward pass through decoder
-            decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
-            # Obtain most likely word token and its softmax score
-            decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
-            # Record token and score
-            all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
-            all_scores = torch.cat((all_scores, decoder_scores), dim=0)
-            # Prepare current token to be next decoder input (add a dimension)
-            decoder_input = torch.unsqueeze(decoder_input, 0)
+            # Initialize tensors to append decoded words to
+            all_tokens = torch.zeros([0], device=self.device, dtype=torch.long)
+            all_scores = torch.zeros([0], device=self.device)
+
+            # Iteratively decode one word token at a time
+            for _ in range(max_length):
+                # Forward pass through decoder
+                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
+                # Obtain most likely word token and its softmax score
+                decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
+                # Record token and score
+                all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
+                all_scores = torch.cat((all_scores, decoder_scores), dim=0)
+                # Prepare current token to be next decoder input (add a dimension)
+                decoder_input = torch.unsqueeze(decoder_input, 0)
+                if decoder_input.item() == EOS_token:
+                    break
 
         # Return collections of word tokens and scores
         return all_tokens, all_scores
@@ -93,7 +97,7 @@ class QAEvaluator:
 if __name__ == "__main__":
     corpus_name = "cornell movie-dialogs corpus"
     datafile = os.path.join("..", "datasets", corpus_name, "formatted_movie_lines.txt")
-    model_name = os.path.join("Checkpoint", "model_loss_3.269.chkpt")
+    model_name = os.path.join("checkpoint", "model_loss_1.967.chkpt")
 
     data_obj = Data()
     data_obj.build_alphabet(datafile)
