@@ -31,7 +31,7 @@ class QATrainer:
         self.encoder_n_layers = 2
         self.decoder_n_layers = 2
         self.dropout = 0.1
-        self.batch_size = 64
+        self.batch_size = 128
 
         # Load model if a loadFilename is provided
         self.load_model_name = load_model_name
