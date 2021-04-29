@@ -15,16 +15,16 @@ class PositionwiseFeedForward(nn.Module):
 
     def __init__(self, d_in, d_hid, dropout=0.1):
         super().__init__()
-        self.w_1 = nn.Linear(d_in, d_hid) # position-wise
-        self.w_2 = nn.Linear(d_hid, d_in) # position-wise
+        self.fc1 = nn.Linear(d_in, d_hid) # position-wise
+        self.fc2 = nn.Linear(d_hid, d_in) # position-wise
         self.layer_norm = nn.LayerNorm(d_in, eps=1e-6)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         residual = x
-        x = self.w_1(x)
+        x = self.fc1(x)
         x = F.relu(x)
-        x = self.w_2(x)
+        x = self.fc2(x)
         x = self.dropout(x)
 
         # Add & Norm
