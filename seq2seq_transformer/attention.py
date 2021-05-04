@@ -13,6 +13,7 @@ import math
 class MultiHeadAttention(nn.Module):
     """Multi-Head Attention module
     """
+    
     def __init__(self, n_head, d_model, dropout=0.1):
         super().__init__()
 
