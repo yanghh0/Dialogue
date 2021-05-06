@@ -19,6 +19,10 @@ class Data:
         self.act_alphabet = Alphabet('act')
         self.build_alphabet()
 
+        self.utt_corpus = self.get_utt_corpus()
+        self.meta_corpus = self.get_meta_corpus()
+        self.dialog_corpus = self.get_dialog_corpus()
+
         print("Done loading corpus!")
 
     def process(self, data):
@@ -105,12 +109,12 @@ class Data:
         id_test = _to_id_corpus(self.test_corpus[0])
         return {'train': id_train, 'valid': id_valid, 'test': id_test}
 
+    def data_generator(self, batch_size):
+        pass
+
 
 if __name__ == "__main__":
     corpus_name = "Switchboard(SW) 1 Release 2 Corpus"
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
 
     obj = Data(corpus_file)
-    utt_corpus = obj.get_utt_corpus()
-    meta_corpus = obj.get_meta_corpus()
-    dialog_corpus = obj.get_dialog_corpus()
