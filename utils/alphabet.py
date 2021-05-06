@@ -10,7 +10,7 @@ class Alphabet:
     """Alphabet maps objects to integer ids.
     """
     def __init__(self, name):
-        self.name = name         # word or char
+        self.name = name         # word/char/topic 
         self.trimmed = False
         self.token2index = {}
         self.token2count = {}
