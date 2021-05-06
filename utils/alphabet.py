@@ -21,6 +21,10 @@ class Alphabet:
         for token in token_sequence.split(' '):
             self.addToken(token)
 
+    def addTokenList(self, token_list):
+        for token in token_list:
+            self.addToken(token)
+
     def addToken(self, token):
         if token not in self.token2index:
             self.token2index[token] = self.num_words
