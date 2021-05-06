@@ -138,4 +138,4 @@ if __name__ == "__main__":
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
 
     obj = Data(corpus_file)
-    obj.data_generator(batch_size=128, data_type="train")
+    obj.data_generator(batch_size=128, data_type="train", backward_size=10, step_size=1)
