@@ -12,7 +12,7 @@ import random
 from torch import optim
 import torch.nn.functional as F
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
-from utils.data import Data
+from utils.cornell_movie_data import Data
 
 
 # Default tokens
