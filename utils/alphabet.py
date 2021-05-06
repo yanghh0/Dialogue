@@ -14,6 +14,15 @@ class Alphabet:
         self.trimmed = False
         self.initialize()
 
+    def initialize(self):
+        self.token2index = {}
+        self.token2count = {}
+        self.index2token = []
+        self.num_tokens = 0
+        if self.name == 'word':
+            self.index2token = ["PAD", "SOS", "EOS", "UNK"]
+            self.num_tokens = 4
+
     def addTokenSeqence(self, token_sequence):
         for token in token_sequence.split(' '):
             self.addToken(token)
@@ -30,15 +39,6 @@ class Alphabet:
             self.num_tokens += 1
         else:
             self.token2count[token] += 1
-
-    def initialize(self):
-        self.token2index = {}
-        self.token2count = {}
-        self.index2token = []
-        self.num_tokens = 0
-        if self.name == 'word':
-            self.index2token = ["PAD", "SOS", "EOS", "UNK"]
-            self.num_tokens = 4
 
     def get_content(self):
         return {'token2index': self.token2index, 
