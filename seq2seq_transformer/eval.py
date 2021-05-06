@@ -28,7 +28,7 @@ class QAEvaluator:
         # parameter of network
         self.load_model_name = load_model_name
         self.data_obj = data_obj
-        self.vocab_size = data_obj.word_alphabet.num_words
+        self.vocab_size = data_obj.word_alphabet.num_tokens
         self.d_model = 512
         self.d_inner = 2048
         self.n_head = 8
