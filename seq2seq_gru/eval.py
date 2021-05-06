@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
 from utils.functions import normalizeString
-from utils.data import Data
+from utils.cornell_movie_data import Data
 
 
 # Default tokens
