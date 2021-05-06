@@ -45,8 +45,8 @@ class Data:
             dialog = [(utt, int(caller=="B"), feat) for caller, utt, feat in lower_utts]
 
             new_utts.extend([utt for caller, utt, feat in lower_utts])
-            new_dialog.append(dialog)
             new_meta.append(meta)
+            new_dialog.append(dialog)
 
         print("Max utt len %d, mean utt len %.2f" % (np.max(all_lengths), float(np.mean(all_lengths))))
         return new_dialog, new_meta, new_utts
@@ -55,20 +55,55 @@ class Data:
         # create word alphabet
         for tokens in self.train_corpus[2]:
             self.word_alphabet.addTokenList(tokens)
+        print("%d words in train data" % self.word_alphabet.num_tokens)
 
         # create topic alphabet
         for a, b, topic in self.train_corpus[1]:
             self.topic_alphabet.addToken(topic)
+        print("%d topics in train data" % self.topic_alphabet.num_tokens)
 
         # get dialog act labels
         for dialog in self.train_corpus[0]:
             for caller, utt, feat in dialog:
                 if feat is not None: 
                     self.act_alphabet.addToken(feat[0])
-
-        print("%d words in train data" % self.word_alphabet.num_tokens)
-        print("%d topics in train data" % self.topic_alphabet.num_tokens)
         print("%d dialog acts in train data" % self.act_alphabet.num_tokens)
+
+    def get_utt_corpus(self):
+        """convert utterance into numbers
+        """
+        id_train = [self.word_alphabet.list_to_indexes(sentence) for sentence in self.train_corpus[2]]
+        id_valid = [self.word_alphabet.list_to_indexes(sentence) for sentence in self.valid_corpus[2]]
+        id_test = [self.word_alphabet.list_to_indexes(sentence) for sentence in self.test_corpus[2]]
+        return {'train': id_train, 'valid': id_valid, 'test': id_test}
+
+    def get_meta_corpus(self):
+        """convert topic into numbers
+        """
+        id_train = [(a, b, self.topic_alphabet.get_index(topic)) for a, b, topic in self.train_corpus[1]]
+        id_valid = [(a, b, self.topic_alphabet.get_index(topic)) for a, b, topic in self.valid_corpus[1]]
+        id_test = [(a, b, self.topic_alphabet.get_index(topic)) for a, b, topic in self.test_corpus[1]]
+        return {'train': id_train, 'valid': id_valid, 'test': id_test}
+
+    def get_dialog_corpus(self):
+        """convert utterance and feature into numeric numbers
+        """
+        def _to_id_corpus(corpus):
+            results = []
+            for dialog in corpus:
+                temp = []
+                for utt, floor, feat in dialog:
+                    id_feat = None
+                    if feat is not None:
+                        id_feat = list(feat)
+                        id_feat[0] = self.act_alphabet.get_index(feat[0])
+                    temp.append((self.word_alphabet.list_to_indexes(utt), floor, id_feat))
+                results.append(temp)
+            return results
+        id_train = _to_id_corpus(self.train_corpus[0])
+        id_valid = _to_id_corpus(self.valid_corpus[0])
+        id_test = _to_id_corpus(self.test_corpus[0])
+        return {'train': id_train, 'valid': id_valid, 'test': id_test}
 
 
 if __name__ == "__main__":
@@ -76,5 +111,6 @@ if __name__ == "__main__":
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
 
     obj = Data(corpus_file)
-
-    
+    utt_corpus = obj.get_utt_corpus()
+    meta_corpus = obj.get_meta_corpus()
+    dialog_corpus = obj.get_dialog_corpus()
