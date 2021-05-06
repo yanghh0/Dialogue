@@ -2,6 +2,7 @@
 import re
 import unicodedata
 import itertools
+import nltk
 
 
 def unicodeToAscii(s):
@@ -25,6 +26,11 @@ def normalizeString(s):
     return s
 
 
+def normalizeStringNLTK(s):
+    s = nltk.WordPunctTokenizer().tokenize(s.lower())
+    return " ".join(s)
+
+
 def zeroPadding(inputs, fillvalue=0):
     return list(itertools.zip_longest(*inputs, fillvalue=fillvalue))
 
@@ -43,8 +49,8 @@ def binaryMatrix(inputs, pad_token=0):
 
 if __name__ == "__main__":
     s = " do you like china? it's a good place.\r\n"
-    s = normalizeString(s)
-    print(s)
+    print(normalizeString(s))
+    print(normalizeStringNLTK(s))
 
     inputs = [[1, 2, 3, 4],
               [4, 3, 2],
