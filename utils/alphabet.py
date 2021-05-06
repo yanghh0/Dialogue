@@ -54,6 +54,11 @@ class Alphabet:
     def sequence_to_indexes(self, token_seqence):
         return [self.get_index(token) for token in token_seqence.split(' ')] + [EOS_token]
 
+    def top_n_token(self, n=-1):
+        my_list = list(self.token2count.items())
+        my_list.sort(key=lambda x: x[1], reverse=True)
+        return my_list[:n]
+
     def trim(self, min_count):
         """Remove tokens below a certain count threshold
         """
