@@ -8,7 +8,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.data import Data
+from utils.movie_data import Data
 from utils.functions import normalizeString
 from seq2seq_transformer.mask import get_pad_mask, get_subsequent_mask
 from seq2seq_transformer.seq2seq import Encoder, Decoder
