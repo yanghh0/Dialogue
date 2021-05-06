@@ -74,7 +74,7 @@ class Alphabet:
             len(keep_tokens), len(self.token2count), len(keep_tokens) / len(self.token2count)
         ))
 
-        self.init()
+        self.initialize()
         for token in keep_tokens:
             self.addToken(token)
 
