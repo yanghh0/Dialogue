@@ -25,7 +25,7 @@ class QAEvaluator:
     def __init__(self, data_obj, load_model_name, use_gpu=False):
         self.load_model_name = load_model_name
         self.data_obj = data_obj
-        self.vocab_size = data_obj.word_alphabet.num_words
+        self.vocab_size = data_obj.word_alphabet.num_tokens
         self.hidden_size = 500
         self.encoder_n_layers = 2
         self.decoder_n_layers = 2
