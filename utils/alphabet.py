@@ -12,10 +12,7 @@ class Alphabet:
     def __init__(self, name):
         self.name = name         # word/char/topic 
         self.trimmed = False
-        self.token2index = {}
-        self.token2count = {}
-        self.index2token = ["PAD", "SOS", "EOS", "UNK"]
-        self.num_words = 4  # Count SOS, EOS, PAD, UNK
+        self.init()
 
     def addTokenSeqence(self, token_sequence):
         for token in token_sequence.split(' '):
@@ -27,18 +24,21 @@ class Alphabet:
 
     def addToken(self, token):
         if token not in self.token2index:
-            self.token2index[token] = self.num_words
+            self.token2index[token] = self.num_tokens
             self.index2token.append(token)
             self.token2count[token] = 1
-            self.num_words += 1
+            self.num_tokens += 1
         else:
             self.token2count[token] += 1
 
-    def clear(self):
+    def init(self):
         self.token2index = {}
         self.token2count = {}
-        self.index2token = ["PAD", "SOS", "EOS", "UNK"]
-        self.num_words = 4
+        self.index2token = []
+        self.num_tokens = 0
+        if self.name == 'word':
+            self.index2token = ["PAD", "SOS", "EOS", "UNK"]
+            self.num_tokens = 4
 
     def get_content(self):
         return {'token2index': self.token2index, 
@@ -74,7 +74,7 @@ class Alphabet:
             len(keep_tokens), len(self.token2count), len(keep_tokens) / len(self.token2count)
         ))
 
-        self.clear()
+        self.init()
         for token in keep_tokens:
             self.addToken(token)
 
