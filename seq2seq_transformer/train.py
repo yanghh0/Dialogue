@@ -25,7 +25,7 @@ class QATrainer:
     def __init__(self, data_obj, use_gpu=True, embed_sharing=True):
         # parameter of network
         self.data_obj = data_obj
-        self.vocab_size = data_obj.word_alphabet.num_words
+        self.vocab_size = data_obj.word_alphabet.num_tokens
         self.d_model = 512
         self.d_inner = 2048
         self.n_head = 8
