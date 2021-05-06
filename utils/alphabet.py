@@ -12,7 +12,7 @@ class Alphabet:
     def __init__(self, name):
         self.name = name         # word/char/topic 
         self.trimmed = False
-        self.init()
+        self.initialize()
 
     def addTokenSeqence(self, token_sequence):
         for token in token_sequence.split(' '):
@@ -31,7 +31,7 @@ class Alphabet:
         else:
             self.token2count[token] += 1
 
-    def init(self):
+    def initialize(self):
         self.token2index = {}
         self.token2count = {}
         self.index2token = []
