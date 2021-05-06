@@ -34,7 +34,7 @@ class Data:
         for pair in self.pairs:
             self.word_alphabet.addTokenSeqence(pair[0])
             self.word_alphabet.addTokenSeqence(pair[1])
-        print("Counted words:", self.word_alphabet.num_words)
+        print("Counted words:", self.word_alphabet.num_tokens)
 
     def trimRareWords(self, min_count=3):
         """ 1. 使用 word_alphabet.trim() 函数去掉频次低于 min_count 的词。
