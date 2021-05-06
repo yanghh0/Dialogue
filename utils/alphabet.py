@@ -17,11 +17,15 @@ class Alphabet:
     def initialize(self):
         self.token2index = {}
         self.token2count = {}
-        self.index2token = []
-        self.num_tokens = 0
         if self.name == 'word':
             self.index2token = ["PAD", "SOS", "EOS", "UNK"]
             self.num_tokens = 4
+        else:
+            self.index2token = ["UNK"]
+            self.num_tokens = 1
+        for idx, token in enumerate(self.index2token):
+            self.token2index[token] = idx
+            self.token2count[token] = 1
 
     def addTokenSeqence(self, token_sequence):
         for token in token_sequence.split(' '):
@@ -53,6 +57,9 @@ class Alphabet:
 
     def sequence_to_indexes(self, token_seqence):
         return [self.get_index(token) for token in token_seqence.split(' ')] + [EOS_token]
+
+    def list_to_indexes(self, token_list):
+        return [self.get_index(token) for token in token_list] + [EOS_token]
 
     def top_n_token(self, n=-1):
         my_list = list(self.token2count.items())
