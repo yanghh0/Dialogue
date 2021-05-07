@@ -7,7 +7,7 @@ sys.path.append("..")
 import os
 import numpy as np
 import pickle as pkl
-from cave.config import Config
+from cvae.config import Config
 from utils.alphabet import Alphabet
 from utils.functions import normalizeStringNLTK, pad_to
 
