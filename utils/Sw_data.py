@@ -1,15 +1,19 @@
 
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
 
 import os
 import numpy as np
 import pickle as pkl
+from cave.config import Config
 from utils.alphabet import Alphabet
 from utils.functions import normalizeStringNLTK, pad_to
 
 
 class Data:
     def __init__(self, corpus_file, data_type):
-        self.max_utt_length = 40
         self.data_dict = pkl.load(open(corpus_file, "rb"))
         self.train_corpus = self.process(self.data_dict["train"])
         self.valid_corpus = self.process(self.data_dict["valid"])
@@ -189,7 +193,7 @@ class Data:
                 floors[i]: [0, 1, 1, ]
                 context_lens[i]: scalar < 10 or 10
                 """
-                context_utts.append([pad_to(utt, self.max_utt_length) for utt, floor, feat in inputs])
+                context_utts.append([pad_to(utt, Config.max_utt_length) for utt, floor, feat in inputs])
                 floors.append([int(floor == out_floor) for utt, floor, feat in inputs])
                 context_lens.append(len(inputs_output) - 1)
 
@@ -200,7 +204,7 @@ class Data:
                 out_floors[i]: 0 or 1
                 out_des[i]: scalar
                 """
-                out_utt = pad_to(out_utt, self.max_utt_length, do_pad=False)
+                out_utt = pad_to(out_utt, Config.max_utt_length, do_pad=False)
                 out_utts.append(out_utt)
                 out_lens.append(len(out_utt))
                 out_floors.append(out_floor)
@@ -218,7 +222,7 @@ class Data:
         ot_profiles = np.array([meta[1-out_floors[idx]] for idx, meta in enumerate(batch_meta)])
 
         context_lens = np.array(context_lens)
-        vec_context = np.zeros((batch_size, np.max(context_lens), self.max_utt_length), dtype=np.int32)
+        vec_context = np.zeros((batch_size, np.max(context_lens), Config.max_utt_length), dtype=np.int32)
         vec_floors = np.zeros((batch_size, np.max(context_lens)), dtype=np.int32)
 
         vec_outs = np.zeros((batch_size, np.max(out_lens)), dtype=np.int32)
