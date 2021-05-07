@@ -11,7 +11,7 @@ from utils.functions import normalizeString, zeroPadding, binaryMatrix
 class Data:
     def __init__(self):
         self.word_alphabet = Alphabet('word')
-        self.max_sentence_length = 20
+        self.max_sentence_length = 10
         self.pairs = []
 
         self.pointer = 0
