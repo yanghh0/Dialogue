@@ -12,6 +12,7 @@ import random
 from torch import optim
 import torch.nn.functional as F
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
+from seq2seq_gru.config import Config
 from utils.cornell_movie_data import Data
 
 
@@ -23,44 +24,26 @@ UNK_token = 3  # Unkonw token
 
 
 class QATrainer:
-    def __init__(self, data_obj, load_model_name=None, use_gpu=True):
-        # parameter of network
+    def __init__(self, data_obj, load_model_name=None):
         self.data_obj = data_obj
         self.vocab_size = data_obj.word_alphabet.num_tokens
-        self.hidden_size = 500
-        self.encoder_n_layers = 2
-        self.decoder_n_layers = 2
-        self.dropout = 0.1
-        self.batch_size = 128
-
-        # Load model if a loadFilename is provided
         self.load_model_name = load_model_name
 
-        # parameter of training
-        self.learning_rate = 0.0001
-        self.decoder_learning_ratio = 5.0
-        self.clip = 50.0
-        self.teacher_forcing_ratio = 1.0
-        self.epochs = 10
-        self.print_every = 1
-        self.use_gpu = use_gpu
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         # network
-        self.embedding = nn.Embedding(num_embeddings=self.vocab_size, embedding_dim=self.hidden_size)
-        self.encoder = EncoderRNN(hidden_size=self.hidden_size, 
+        self.embedding = nn.Embedding(num_embeddings=self.vocab_size, embedding_dim=Config.hidden_size)
+        self.encoder = EncoderRNN(hidden_size=Config.hidden_size, 
                                   embedding=self.embedding, 
-                                  n_layers=self.encoder_n_layers, 
-                                  dropout=self.dropout)
+                                  n_layers=Config.encoder_n_layers, 
+                                  dropout=Config.dropout)
         self.decoder = LuongAttnDecoderRNN(embedding=self.embedding, 
-                                           hidden_size=self.hidden_size, 
+                                           hidden_size=Config.hidden_size, 
                                            vocab_size=self.vocab_size, 
-                                           n_layers=self.decoder_n_layers, 
-                                           dropout=self.dropout)
+                                           n_layers=Config.decoder_n_layers, 
+                                           dropout=Config.dropout)
 
         # optimizer
-        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=self.learning_rate)
-        self.decoder_optimizer = optim.Adam(self.decoder.parameters(), lr=self.learning_rate*self.decoder_learning_ratio)
+        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=Config.learning_rate)
+        self.decoder_optimizer = optim.Adam(self.decoder.parameters(), lr=Config.learning_rate*Config.decoder_learning_ratio)
 
         if self.load_model_name:
             checkpoint = torch.load(self.load_model_name)
@@ -70,7 +53,7 @@ class QATrainer:
             self.encoder_optimizer.load_state_dict(checkpoint['encoder_optimizer'])
             self.decoder_optimizer.load_state_dict(checkpoint['decoder_optimizer'])
 
-        if use_gpu:
+        if Config.use_gpu:
             self.encoder.cuda()
             self.decoder.cuda()
 
@@ -105,10 +88,10 @@ class QATrainer:
         self.encoder_optimizer.zero_grad()
         self.decoder_optimizer.zero_grad()
 
-        if self.use_gpu:
-            inputs = inputs.to(self.device)
-            targets = targets.to(self.device)
-            masks = masks.to(self.device)
+        if Config.use_gpu:
+            inputs = inputs.to(Config.device)
+            targets = targets.to(Config.device)
+            masks = masks.to(Config.device)
 
         loss = 0
         print_losses = []
@@ -118,15 +101,15 @@ class QATrainer:
         encoder_outputs, encoder_hidden = self.encoder(inputs, inputs_length)
 
         # Create initial decoder input (start with SOS tokens for each sentence)
-        decoder_input = torch.LongTensor([[SOS_token for _ in range(self.batch_size)]])
-        if self.use_gpu:
-            decoder_input = decoder_input.to(self.device)
+        decoder_input = torch.LongTensor([[SOS_token for _ in range(Config.batch_size)]])
+        if Config.use_gpu:
+            decoder_input = decoder_input.to(Config.device)
 
         # Set initial decoder hidden state to the encoder's final hidden state
-        decoder_hidden = encoder_hidden[:self.decoder_n_layers]
+        decoder_hidden = encoder_hidden[:Config.decoder_n_layers]
 
         # Determine if we are using teacher forcing this iteration
-        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+        use_teacher_forcing = True if random.random() < Config.teacher_forcing_ratio else False
 
         # Forward batch of sequences through decoder one time step at a time
         if use_teacher_forcing:
@@ -144,9 +127,9 @@ class QATrainer:
                 decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
                 # No teacher forcing: next input is decoder's own current output
                 _, topi = decoder_output.topk(1)
-                decoder_input = torch.LongTensor([[topi[i][0] for i in range(self.batch_size)]])
-                if self.use_gpu:
-                    decoder_input = decoder_input.to(self.device)
+                decoder_input = torch.LongTensor([[topi[i][0] for i in range(Config.batch_size)]])
+                if Config.use_gpu:
+                    decoder_input = decoder_input.to(Config.device)
                 # Calculate and accumulate loss
                 mask_loss, nTotal = self.maskNLLLoss(decoder_output, targets[t], masks[t])
                 loss += mask_loss
@@ -157,8 +140,8 @@ class QATrainer:
         loss.backward()
 
         # Clip gradients: gradients are modified in place
-        _ = nn.utils.clip_grad_norm_(self.encoder.parameters(), self.clip)
-        _ = nn.utils.clip_grad_norm_(self.decoder.parameters(), self.clip)
+        _ = nn.utils.clip_grad_norm_(self.encoder.parameters(), Config.clip)
+        _ = nn.utils.clip_grad_norm_(self.decoder.parameters(), Config.clip)
 
         # Adjust model weights
         self.encoder_optimizer.step()
@@ -178,8 +161,8 @@ class QATrainer:
             print_loss += loss
             epoch_loss += loss
             iteration += 1
-            if iteration % self.print_every == 0:
-                print_loss_avg = print_loss / self.print_every
+            if iteration % Config.print_every == 0:
+                print_loss_avg = print_loss / Config.print_every
                 print("Percent complete in {} epoch: {}/{}; Average loss: {:.4f}".format(
                        epoch_th, iteration, self.data_obj.num_batch, print_loss_avg))
                 print_loss = 0
@@ -199,8 +182,8 @@ class QATrainer:
 
         # Training loop
         print("Training...")
-        for iteration in range(start_iteration, self.epochs + 1):
-            self.data_obj.epoch_init(self.batch_size)
+        for iteration in range(start_iteration, Config.epochs + 1):
+            self.data_obj.epoch_init(Config.batch_size)
             loss = self.train_epoch(iteration)
 
             # Save checkpoint
