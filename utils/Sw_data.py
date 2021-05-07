@@ -236,7 +236,6 @@ class Data:
                vec_outs, vec_out_lens, vec_out_des
 
 
-
 if __name__ == "__main__":
     corpus_name = "Switchboard(SW) 1 Release 2 Corpus"
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
