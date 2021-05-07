@@ -8,6 +8,7 @@ import os
 import torch
 import torch.nn as nn
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
+from seq2seq_gru.config import Config
 from utils.functions import normalizeString
 from utils.cornell_movie_data import Data
 
@@ -22,28 +23,22 @@ UNK_token = 3  # Unkonw token
 class QAEvaluator:
     """Load a trained model and generate in gready/beam search fashion.
     """
-    def __init__(self, data_obj, load_model_name, use_gpu=False):
+    def __init__(self, data_obj, load_model_name):
         self.load_model_name = load_model_name
         self.data_obj = data_obj
         self.vocab_size = data_obj.word_alphabet.num_tokens
-        self.hidden_size = 500
-        self.encoder_n_layers = 2
-        self.decoder_n_layers = 2
-        self.dropout = 0.1
-        self.beam_size = 2
-        self.device = torch.device("cuda" if use_gpu else "cpu")
 
         # network
-        self.embedding = nn.Embedding(num_embeddings=self.vocab_size, embedding_dim=self.hidden_size)
-        self.encoder = EncoderRNN(hidden_size=self.hidden_size, 
+        self.embedding = nn.Embedding(num_embeddings=self.vocab_size, embedding_dim=Config.hidden_size)
+        self.encoder = EncoderRNN(hidden_size=Config.hidden_size, 
                                   embedding=self.embedding, 
-                                  n_layers=self.encoder_n_layers, 
-                                  dropout=self.dropout)
+                                  n_layers=Config.encoder_n_layers, 
+                                  dropout=Config.dropout)
         self.decoder = LuongAttnDecoderRNN(embedding=self.embedding, 
-                                           hidden_size=self.hidden_size, 
+                                           hidden_size=Config.hidden_size, 
                                            vocab_size=self.vocab_size, 
-                                           n_layers=self.decoder_n_layers, 
-                                           dropout=self.dropout)
+                                           n_layers=Config.decoder_n_layers, 
+                                           dropout=Config.dropout)
 
         # Load network parameters
         checkpoint = torch.load(self.load_model_name)
@@ -67,7 +62,7 @@ class QAEvaluator:
             encoder_outputs, encoder_hidden = self.encoder(inputs, inputs_length)
 
             # Prepare encoder's final hidden layer to be first hidden input to the decoder
-            decoder_hidden = encoder_hidden[:self.decoder_n_layers]
+            decoder_hidden = encoder_hidden[:Config.decoder_n_layers]
 
             # Initialize decoder input with SOS_token
             decoder_input = torch.ones(1, 1, device=self.device, dtype=torch.long) * SOS_token
@@ -127,7 +122,7 @@ if __name__ == "__main__":
             indexes_inputs = torch.LongTensor(indexes_inputs).transpose(0, 1)
 
             # Decode sentence with evaluator
-            tokens, scores = evaluator.eval(indexes_inputs, input_lengths, max_length=10)
+            tokens, scores = evaluator.eval(indexes_inputs, input_lengths, max_length=config.max_sentence_length)
 
             # indexes -> words
             decoded_words = [data_obj.word_alphabet.index2token[token.item()] for token in tokens]
