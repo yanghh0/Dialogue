@@ -4,11 +4,12 @@ import os
 import numpy as np
 import pickle as pkl
 from utils.alphabet import Alphabet
-from utils.functions import normalizeStringNLTK
+from utils.functions import normalizeStringNLTK, pad_to
 
 
 class Data:
-    def __init__(self, corpus_file):
+    def __init__(self, corpus_file, data_type):
+        self.max_utt_length = 40
         self.data_dict = pkl.load(open(corpus_file, "rb"))
         self.train_corpus = self.process(self.data_dict["train"])
         self.valid_corpus = self.process(self.data_dict["valid"])
@@ -19,9 +20,19 @@ class Data:
         self.act_alphabet = Alphabet('act')
         self.build_alphabet()
 
-        self.utt_corpus = self.get_utt_corpus()
-        self.meta_corpus = self.get_meta_corpus()
-        self.dialog_corpus = self.get_dialog_corpus()
+        self.utt_corpus_dict = self.get_utt_corpus()
+        self.meta_corpus_dict = self.get_meta_corpus()
+        self.dialog_corpus_dict = self.get_dialog_corpus()
+
+        self.s_metas = self.meta_corpus_dict[data_type]
+        self.s_dialogs = self.dialog_corpus_dict[data_type]
+        self.s_lengths = [len(dialog) for dialog in self.s_dialogs]
+        self.s_indexes = list(np.argsort(self.s_lengths))
+
+        self.pointer = 0
+        self.num_batch = 0
+        self.epoch_data = []
+        self.grid_indexes = []
 
         print("Done loading corpus!")
 
@@ -109,33 +120,133 @@ class Data:
         id_test = _to_id_corpus(self.test_corpus[0])
         return {'train': id_train, 'valid': id_valid, 'test': id_test}
 
-    def data_generator(self, batch_size, data_type, backward_size, step_size):
-        dialogs = self.dialog_corpus[data_type]
-        metas = self.meta_corpus[data_type]
-        lengths = [len(dialog) for dialog in dialogs]
-        indexes = list(np.argsort(lengths))
-        total_calls = len(dialogs)
+    def epoch_init(self, batch_size, backward_size, step_size):
+        self.pointer = 0
 
-        ptr = 0
+        temp_num_batch = len(self.s_dialogs) // batch_size
+        self.epoch_data = []
 
-        temp_num_batch = total_calls // batch_size
-        batch_indexes = []
         for i in range(temp_num_batch):
-            batch_indexes.append(indexes[i*batch_size : (i+1)*batch_size])
+            self.epoch_data.append(self.s_indexes[i*batch_size : (i+1)*batch_size])
+        np.random.shuffle(self.epoch_data)
 
-        left_calls = total_calls - temp_num_batch * batch_size
-        np.random.shuffle(batch_indexes)
+        self.grid_indexes = []
+        for idx, b_ids in enumerate(self.epoch_data):
+            b_lengths = [self.s_lengths[rank] for rank in b_ids]   # 批次内所有通话时长
+            max_b_length = self.s_lengths[b_ids[-1]]               # 批次内最大通话时长
+            min_b_length = self.s_lengths[b_ids[0]]                # 批次内最短通话时长
 
-        grid_indexes = []
-        for idx, b_ids in enumerate(batch_indexes):
-            batch_lengths = [lengths[i] for i in b_ids]
-            max_length = lengths[b_ids[-1]]
-            min_length = lengths[b_ids[0]]
+            num_seg = (max_b_length - backward_size) // step_size
+
+            if num_seg > 0:
+                cut_start = list(range(0, num_seg*step_size, step_size))
+                cut_end = list(range(backward_size, num_seg*step_size+backward_size, step_size))
+                cut_start = [0] * (backward_size-2) + cut_start
+                cut_end = list(range(2, backward_size)) + cut_end
+            else:
+                cut_start = [0] * (max_b_length - 2)
+                cut_end = list(range(2, max_b_length))
+
+            new_grids = [(idx, s_id, e_id) for s_id, e_id in zip(cut_start, cut_end) if s_id < min_b_length-1]
+            np.random.shuffle(new_grids)
+            self.grid_indexes.extend(new_grids)
+        self.num_batch = len(self.grid_indexes)
+
+    def next_batch(self):
+        if self.pointer < self.num_batch:
+            current_grid = self.grid_indexes[self.pointer]
+            self.pointer += 1
+            return self._prepare_batch(cur_grid=current_grid)
+        else:
+            return None
+
+    def _prepare_batch(self, cur_grid):
+        b_id, s_id, e_id = cur_grid
+
+        batch_data = self.epoch_data[b_id]
+        batch_dialog = [self.s_dialogs[idx] for idx in batch_data]
+        batch_meta = [self.s_metas[idx] for idx in batch_data]
+        batch_topic = np.array([meta[2] for meta in batch_meta])
+        batch_size = len(batch_data)
+
+        context_utts = []
+        floors = []
+        context_lens = []
+        out_utts = []
+        out_lens = []
+        out_floors = []
+        out_des = []
+
+        for dialog in batch_dialog:
+            if s_id < len(dialog) - 1:
+                inputs_output = dialog[s_id:e_id]
+                inputs = inputs_output[0:-1]
+                output = inputs_output[-1]
+                out_utt, out_floor, out_feat = output
+
+                """
+                context_utts[i]: [[], [], ...]
+                floors[i]: [0, 1, 1, ]
+                context_lens[i]: scalar < 10 or 10
+                """
+                context_utts.append([pad_to(utt, self.max_utt_length) for utt, floor, feat in inputs])
+                floors.append([int(floor == out_floor) for utt, floor, feat in inputs])
+                context_lens.append(len(inputs_output) - 1)
+
+                """
+                out_utt: []
+                out_utts[i]: []
+                out_lens[i]: scalar
+                out_floors[i]: 0 or 1
+                out_des[i]: scalar
+                """
+                out_utt = pad_to(out_utt, self.max_utt_length, do_pad=False)
+                out_utts.append(out_utt)
+                out_lens.append(len(out_utt))
+                out_floors.append(out_floor)
+                out_des.append(out_feat[0])
+            else:
+                print(dialog)
+                raise ValueError("S_ID %d larger than dialog" % s_id)
+
+        """
+        [[0.73       0.66666667 1.         0.        ]
+         [0.59       0.66666667 1.         0.        ]
+         ...
+        """
+        my_profiles = np.array([meta[out_floors[idx]] for idx, meta in enumerate(batch_meta)])
+        ot_profiles = np.array([meta[1-out_floors[idx]] for idx, meta in enumerate(batch_meta)])
+
+        context_lens = np.array(context_lens)
+        vec_context = np.zeros((batch_size, np.max(context_lens), self.max_utt_length), dtype=np.int32)
+        vec_floors = np.zeros((batch_size, np.max(context_lens)), dtype=np.int32)
+
+        vec_outs = np.zeros((batch_size, np.max(out_lens)), dtype=np.int32)
+        vec_out_lens = np.array(out_lens)
+        vec_out_des = np.array(out_des)
+
+        for b_id in range(batch_size):
+            vec_context[b_id, 0:context_lens[b_id], :] = np.array(context_utts[b_id])
+            vec_floors[b_id, 0:context_lens[b_id]] = floors[b_id]
+            vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
+
+        return vec_context, context_lens, vec_floors, \
+               batch_topic,                           \
+               my_profiles, ot_profiles,              \
+               vec_outs, vec_out_lens, vec_out_des
+
 
 
 if __name__ == "__main__":
     corpus_name = "Switchboard(SW) 1 Release 2 Corpus"
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
 
-    obj = Data(corpus_file)
-    obj.data_generator(batch_size=128, data_type="train", backward_size=10, step_size=1)
+    obj = Data(corpus_file, "train")
+    obj.epoch_init(batch_size=128, backward_size=10, step_size=1)
+    iteration = 0
+    while True:
+        batch_data = obj.next_batch()
+        if batch_data is None:
+            break
+        iteration += 1
+
