@@ -1,17 +1,22 @@
 
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
+
 import os
 import torch
 import random
 import numpy as np
 from tqdm import tqdm
 from utils.alphabet import Alphabet
+from seq2seq_gru.config import Config
 from utils.functions import normalizeString, zeroPadding, binaryMatrix
 
 
 class Data:
     def __init__(self):
         self.word_alphabet = Alphabet('word')
-        self.max_sentence_length = 10
         self.pairs = []
 
         self.pointer = 0
@@ -19,7 +24,7 @@ class Data:
         self.epoch_data = []
 
     def filterPair(self, pair):
-        return len(pair[0].split(' ')) < self.max_sentence_length and len(pair[1].split(' ')) < self.max_sentence_length
+        return len(pair[0].split(' ')) < Config.max_sentence_length and len(pair[1].split(' ')) < Config.max_sentence_length
 
     def filterPairs(self, pairs):
         return [pair for pair in pairs if self.filterPair(pair)]
