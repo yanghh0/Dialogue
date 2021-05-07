@@ -2,6 +2,7 @@
 import os
 import torch
 import random
+import numpy as np
 from tqdm import tqdm
 from utils.alphabet import Alphabet
 from utils.functions import normalizeString, zeroPadding, binaryMatrix
@@ -12,6 +13,10 @@ class Data:
         self.word_alphabet = Alphabet('word')
         self.max_sentence_length = 20
         self.pairs = []
+
+        self.pointer = 0
+        self.num_batch = 0
+        self.epoch_data = []
 
     def filterPair(self, pair):
         return len(pair[0].split(' ')) < self.max_sentence_length and len(pair[1].split(' ')) < self.max_sentence_length
@@ -100,10 +105,25 @@ class Data:
         targets, mask, max_target_len = self.process_targets(targets)
         return inputs, inputs_lengths, targets, mask, max_target_len
 
-    def data_generator(self, batch_size):
-        while True:
-            training_batch = self.batch2TrainData([random.choice(self.pairs) for _ in range(batch_size)])
-            yield training_batch
+    def epoch_init(self, batch_size):
+        self.num_batch = len(self.pairs) // batch_size
+        self.pointer = 0
+        self.epoch_data = []
+
+        for i in range(self.num_batch):
+            self.epoch_data.append(self.pairs[i*batch_size : (i+1)*batch_size])
+        np.random.shuffle(self.epoch_data)
+
+    def next_batch(self):
+        if self.pointer < self.num_batch:
+            batch_data = self._prepare_batch()
+            self.pointer += 1
+            return batch_data
+        else:
+            return None
+
+    def _prepare_batch(self):
+        return self.batch2TrainData(self.epoch_data[self.pointer])
 
 
 if __name__ == "__main__":
@@ -131,6 +151,7 @@ if __name__ == "__main__":
     print("mask:", mask)
     print("max_target_len:", max_target_len)
 
-    yield_training_batch = obj.data_generator(batch_size=64)
-    for iteration in range(10):
-        print(next(yield_training_batch))
+    obj.epoch_init(batch_size=128)
+    while True:
+        if obj.next_batch() is None:
+            break
