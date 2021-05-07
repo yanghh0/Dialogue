@@ -31,7 +31,7 @@ class QATrainer:
         self.encoder_n_layers = 2
         self.decoder_n_layers = 2
         self.dropout = 0.1
-        self.batch_size = 128
+        self.batch_size = 64
 
         # Load model if a loadFilename is provided
         self.load_model_name = load_model_name
@@ -41,8 +41,7 @@ class QATrainer:
         self.decoder_learning_ratio = 5.0
         self.clip = 50.0
         self.teacher_forcing_ratio = 1.0
-        self.n_iteration = 4000
-        self.save_every = 500
+        self.epochs = 10
         self.print_every = 1
         self.use_gpu = use_gpu
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -98,7 +97,7 @@ class QATrainer:
         loss = crossEntropy.masked_select(mask).mean()
         return loss, nTotal.item() 
 
-    def train(self, inputs, inputs_length, targets, masks, max_target_len):
+    def train_batch(self, inputs, inputs_length, targets, masks, max_target_len):
         """shape of inputs: (t, b)
            shape of targets: (t, b)
         """
@@ -167,52 +166,53 @@ class QATrainer:
 
         return sum(print_losses) / n_totals
 
-    def trainIters(self):
+    def train_epoch(self, epoch_th):
+        print_loss = 0
+        iteration = 0
+        epoch_loss = 0
+        while True:
+            batch_data = self.data_obj.next_batch()
+            if batch_data is None:
+                break 
+            loss = self.train_batch(*batch_data)
+            print_loss += loss
+            epoch_loss += loss
+            iteration += 1
+            if iteration % self.print_every == 0:
+                print_loss_avg = print_loss / self.print_every
+                print("Percent complete in {} epoch: {}/{}; Average loss: {:.4f}".format(
+                       epoch_th, iteration, self.data_obj.num_batch, print_loss_avg))
+                print_loss = 0
+        return epoch_loss / iteration
+            
+    def train_model(self):
         print("Starting Training!")
         
         # Ensure dropout layers are in train mode
         self.encoder.train()
         self.decoder.train()
 
-        # Prepare data
-        yield_training_batch = self.data_obj.data_generator(self.batch_size)
-
         # Initializations
         print('Initializing ...')
         start_iteration = 1
-        print_loss = 0
-
-        if self.load_model_name:
-            checkpoint = torch.load(self.load_model_name)
-            start_iteration = checkpoint['iteration'] + 1
+        min_loss = 100000.0
 
         # Training loop
         print("Training...")
-        for iteration in range(start_iteration, self.n_iteration + 1):
-            # Extract fields from batch
-            inputs, inputs_lengths, outputs, masks, max_target_len = next(yield_training_batch)
-
-            # Run a training iteration with batch
-            loss = self.train(inputs, inputs_lengths, outputs, masks, max_target_len)
-            print_loss += loss
-
-            # Print progress
-            if iteration % self.print_every == 0:
-                print_loss_avg = print_loss / self.print_every
-                print("Iteration: {}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(iteration, iteration / self.n_iteration * 100, print_loss_avg))
-                print_loss = 0
+        for iteration in range(start_iteration, self.epochs + 1):
+            self.data_obj.epoch_init(self.batch_size)
+            loss = self.train_epoch(iteration)
 
             # Save checkpoint
-            if iteration % self.save_every == 0:
+            if loss < min_loss:
+                min_loss = loss
                 model_name = 'model_loss_{:.3f}.chkpt'.format(loss)
                 checkpoint = {
-                    'iteration': iteration,
                     'embedding': self.embedding.state_dict(),
                     'encoder': self.encoder.state_dict(),
                     'decoder': self.decoder.state_dict(),
                     'encoder_optimizer': self.encoder_optimizer.state_dict(),
                     'decoder_optimizer': self.decoder_optimizer.state_dict(),
-                    'loss': loss
                 }
                 torch.save(checkpoint, os.path.join("checkpoint", model_name))
 
@@ -226,4 +226,4 @@ if __name__ == "__main__":
     data_obj.trimRareWords()
 
     trainer = QATrainer(data_obj)
-    trainer.trainIters()
+    trainer.train_model()
