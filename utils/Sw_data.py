@@ -124,14 +124,14 @@ class Data:
         id_test = _to_id_corpus(self.test_corpus[0])
         return {'train': id_train, 'valid': id_valid, 'test': id_test}
 
-    def epoch_init(self, batch_size, backward_size, step_size):
+    def epoch_init(self):
         self.pointer = 0
 
-        temp_num_batch = len(self.s_dialogs) // batch_size
+        temp_num_batch = len(self.s_dialogs) // Config.batch_size
         self.epoch_data = []
 
         for i in range(temp_num_batch):
-            self.epoch_data.append(self.s_indexes[i*batch_size : (i+1)*batch_size])
+            self.epoch_data.append(self.s_indexes[i*Config.batch_size : (i+1)*Config.batch_size])
         np.random.shuffle(self.epoch_data)
 
         self.grid_indexes = []
@@ -140,13 +140,13 @@ class Data:
             max_b_length = self.s_lengths[b_ids[-1]]               # 批次内最大通话时长
             min_b_length = self.s_lengths[b_ids[0]]                # 批次内最短通话时长
 
-            num_seg = (max_b_length - backward_size) // step_size
+            num_seg = (max_b_length - Config.backward_size) // Config.step_size
 
             if num_seg > 0:
-                cut_start = list(range(0, num_seg*step_size, step_size))
-                cut_end = list(range(backward_size, num_seg*step_size+backward_size, step_size))
-                cut_start = [0] * (backward_size-2) + cut_start
-                cut_end = list(range(2, backward_size)) + cut_end
+                cut_start = list(range(0, num_seg*Config.step_size, Config.step_size))
+                cut_end = list(range(Config.backward_size, num_seg*Config.step_size+Config.backward_size, Config.step_size))
+                cut_start = [0] * (Config.backward_size-2) + cut_start
+                cut_end = list(range(2, Config.backward_size)) + cut_end
             else:
                 cut_start = [0] * (max_b_length - 2)
                 cut_end = list(range(2, max_b_length))
@@ -171,7 +171,8 @@ class Data:
         batch_dialog = [self.s_dialogs[idx] for idx in batch_data]
         batch_meta = [self.s_metas[idx] for idx in batch_data]
         batch_topic = np.array([meta[2] for meta in batch_meta])
-        batch_size = len(batch_data)
+
+        assert Config.batch_size == len(batch_data)
 
         context_utts = []
         floors = []
@@ -222,14 +223,14 @@ class Data:
         ot_profiles = np.array([meta[1-out_floors[idx]] for idx, meta in enumerate(batch_meta)])
 
         context_lens = np.array(context_lens)
-        vec_context = np.zeros((batch_size, np.max(context_lens), Config.max_utt_length), dtype=np.int32)
-        vec_floors = np.zeros((batch_size, np.max(context_lens)), dtype=np.int32)
+        vec_context = np.zeros((Config.batch_size, np.max(context_lens), Config.max_utt_length), dtype=np.int32)
+        vec_floors = np.zeros((Config.batch_size, np.max(context_lens)), dtype=np.int32)
 
-        vec_outs = np.zeros((batch_size, np.max(out_lens)), dtype=np.int32)
+        vec_outs = np.zeros((Config.batch_size, np.max(out_lens)), dtype=np.int32)
         vec_out_lens = np.array(out_lens)
         vec_out_des = np.array(out_des)
 
-        for b_id in range(batch_size):
+        for b_id in range(Config.batch_size):
             vec_context[b_id, 0:context_lens[b_id], :] = np.array(context_utts[b_id])
             vec_floors[b_id, 0:context_lens[b_id]] = floors[b_id]
             vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
@@ -245,7 +246,7 @@ if __name__ == "__main__":
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
 
     obj = Data(corpus_file, "train")
-    obj.epoch_init(batch_size=128, backward_size=10, step_size=1)
+    obj.epoch_init()
     iteration = 0
     while True:
         batch_data = obj.next_batch()
