@@ -47,10 +47,20 @@ def binaryMatrix(inputs, pad_token=0):
     return m
 
 
+def pad_to(sequence, max_length, do_pad=True):
+    if len(sequence) >= max_length:
+        return sequence[0:max_length-1] + [sequence[-1]]
+    elif do_pad:
+        return sequence + [0] * (max_length - len(sequence))
+    return sequence
+
+
 if __name__ == "__main__":
-    s = " do you like china? it's a good place.\r\n"
+    s = " do you like china? it's a good place. EOS\r\n"
     print(normalizeString(s))
     print(normalizeStringNLTK(s))
+    print(pad_to(normalizeStringNLTK(s).split(" "), 5))
+    print(pad_to(normalizeStringNLTK(s).split(" "), 20))
 
     inputs = [[1, 2, 3, 4],
               [4, 3, 2],
