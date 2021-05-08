@@ -59,7 +59,7 @@ class Alphabet:
         return [self.get_index(token) for token in token_seqence.split(' ')] + [EOS_token]
 
     def list_to_indexes(self, token_list):
-        return [self.get_index(token) for token in token_list] + [EOS_token]
+        return [SOS_token] + [self.get_index(token) for token in token_list] + [EOS_token]
 
     def top_n_token(self, n=-1):
         my_list = list(self.token2count.items())
