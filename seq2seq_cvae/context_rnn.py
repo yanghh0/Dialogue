@@ -32,6 +32,7 @@ class ContextRNN(nn.Module):
         sorted_lens, len_ix = sequence_length.sort(0, descending=True)
 
         # Used for later reorder
+        # 假如 x 原来的位置是3， 排序后变成 2，这个 2 就是排名，那么还原时位置 3 就需要用位置2的元素赋值
         inv_ix = len_ix.clone()
         inv_ix[len_ix] = torch.arange(0, len(len_ix)).type_as(inv_ix)
 
