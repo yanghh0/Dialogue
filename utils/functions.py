@@ -1,5 +1,6 @@
 
 import re
+import torch
 import unicodedata
 import itertools
 import nltk
@@ -65,6 +66,13 @@ def print_model_stats(tvars):
         print("Trainable %s with %d parameters" % (name, variable_parameters))
         total_parameters += variable_parameters
     print("Total number of trainable parameters is %d" % total_parameters)
+
+
+def sample_gaussian(mu, logvar):
+    epsilon = logvar.new_empty(logvar.size()).normal_()
+    std = torch.exp(0.5 * logvar)
+    z = mu + std * epsilon
+    return z
 
 
 if __name__ == "__main__":
