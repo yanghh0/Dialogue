@@ -5,6 +5,7 @@ sys.path.append("..")
 
 
 import os
+import torch
 import numpy as np
 import pickle as pkl
 from seq2seq_cvae.config import Config
@@ -238,10 +239,15 @@ class Data:
             vec_floors[b_id, 0:context_lens[b_id]] = floors[b_id]
             vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
 
-        return vec_context, context_lens, vec_floors, \
-               batch_topic,                           \
-               my_profiles, ot_profiles,              \
-               vec_outs, vec_out_lens, vec_out_des
+        return torch.from_numpy(vec_context).long(),     \
+               torch.from_numpy(context_lens),           \
+               torch.from_numpy(vec_floors),             \
+               torch.from_numpy(batch_topic).long(),     \
+               torch.from_numpy(my_profiles),            \
+               torch.from_numpy(ot_profiles),            \
+               torch.from_numpy(vec_outs).long(),        \
+               torch.from_numpy(vec_out_lens),           \
+               torch.from_numpy(vec_out_des).long()
 
 
 if __name__ == "__main__":
