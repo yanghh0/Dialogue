@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from seq2seq_gru.seq2seq import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq_gru.config import Config
 from utils.cornell_movie_data import Data
+from utils.functions import print_model_stats
 
 
 # Default tokens
@@ -52,6 +53,9 @@ class QATrainer:
             self.decoder.load_state_dict(checkpoint['decoder'])
             self.encoder_optimizer.load_state_dict(checkpoint['encoder_optimizer'])
             self.decoder_optimizer.load_state_dict(checkpoint['decoder_optimizer'])
+
+        # print_model_stats(self.encoder.named_parameters())
+        # print_model_stats(self.decoder.named_parameters())
 
         if Config.use_gpu:
             self.encoder.cuda()
