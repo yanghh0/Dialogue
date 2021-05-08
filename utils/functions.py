@@ -55,6 +55,18 @@ def pad_to(sequence, max_length, do_pad=True):
     return sequence
 
 
+def print_model_stats(tvars):
+    total_parameters = 0
+    for name, param in tvars:
+        shape = param.size()
+        variable_parameters = 1
+        for dim in shape:
+            variable_parameters *= dim
+        print("Trainable %s with %d parameters" % (name, variable_parameters))
+        total_parameters += variable_parameters
+    print("Total number of trainable parameters is %d" % total_parameters)
+
+
 if __name__ == "__main__":
     s = " do you like china? it's a good place. EOS\r\n"
     print(normalizeString(s))
