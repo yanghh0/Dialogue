@@ -76,38 +76,6 @@ class LuongAttnDecoderRNN(nn.Module):
         return output, hidden
 
 
-def test_encoder():
-    inputs = torch.LongTensor([[1, 2, 3, 4],
-                               [4, 3, 2, 0],
-                               [7, 4, 0, 0]])
-    inputs_length = [4, 3, 2]
-    use_gpu = True
-    inputs = inputs.t()
-
-    embedding = WordEmbedding(vocab_size=10, embedding_dim=6)
-    encoder = EncoderRNN(hidden_size=6, embedding=embedding)
-    if use_gpu:
-        encoder.cuda()
-        inputs = inputs.cuda()
-    out = encoder(inputs, inputs_length)
-    return out
-
-
-def test_decoder(encoder_outputs):
-    inputs = torch.LongTensor([[1, 2, 3, 4],
-                               [4, 3, 2, 0],
-                               [7, 4, 0, 0]])
-    use_gpu = True
-    inputs = inputs.t()
-
-    embedding = WordEmbedding(vocab_size=10, embedding_dim=6)
-    decoder = LuongAttnDecoderRNN(embedding=embedding, hidden_size=6, vocab_size=10)
-    if use_gpu:
-        decoder.cuda()
-        inputs = inputs.cuda()
-    out = decoder(inputs[0].unsqueeze(0), None, encoder_outputs)
-
-
 if __name__ == "__main__":
     inputs = torch.LongTensor([[1, 2, 3, 4],
                                [4, 3, 2, 0],
