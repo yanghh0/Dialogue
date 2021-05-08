@@ -7,7 +7,7 @@ sys.path.append("..")
 import os
 import numpy as np
 import pickle as pkl
-from cvae.config import Config
+from seq2seq_cvae.config import Config
 from utils.alphabet import Alphabet
 from utils.functions import normalizeStringNLTK, pad_to
 
@@ -74,11 +74,13 @@ class Data:
         # create word alphabet
         for tokens in self.train_corpus[2]:
             self.word_alphabet.addTokenList(tokens)
+        Config.word_vocab_size = self.word_alphabet.num_tokens
         print("%d words in train data" % self.word_alphabet.num_tokens)
 
         # create topic alphabet
         for a, b, topic in self.train_corpus[1]:
             self.topic_alphabet.addToken(topic)
+        Config.topic_vocab_size = self.topic_alphabet.num_tokens
         print("%d topics in train data" % self.topic_alphabet.num_tokens)
 
         # get dialog act labels
@@ -86,6 +88,7 @@ class Data:
             for caller, utt, feat in dialog:
                 if feat is not None: 
                     self.act_alphabet.addToken(feat[0])
+        Config.act_vocab_size = self.act_alphabet.num_tokens
         print("%d dialog acts in train data" % self.act_alphabet.num_tokens)
 
     def get_utt_corpus(self):
