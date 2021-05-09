@@ -15,7 +15,13 @@ from seq2seq_cvae.config import Config
 class ContextRNN(nn.Module):
     def __init__(self):
         super(ContextRNN, self).__init__()
-        self.ctx_encoder = self.get_rnncell("gru", Config.ctx_input_size, Config.ctx_hidden_size, Config.ctx_num_layer, Config.keep_prob)
+        self.ctx_encoder = self.get_rnncell(
+            "gru", 
+            Config.ctx_input_size, 
+            Config.ctx_hidden_size, 
+            Config.ctx_num_layer, 
+            Config.keep_prob
+        )
 
     @staticmethod
     def get_rnncell(cell_type, input_size, hidden_size, num_layer, keep_prob, bidirectional=False):
@@ -61,6 +67,11 @@ class ContextRNN(nn.Module):
         # compensate the last last layer dropout.
         outputs = F.dropout(outputs, self.ctx_encoder.dropout, self.training)
         state = F.dropout(state, self.ctx_encoder.dropout, self.training)
+
+        if Config.ctx_num_layer > 1:
+            state = torch.cat([_ for _ in torch.unbind(state)], 1)
+        else:
+            state = state.squeeze(0)
 
         return outputs, state
 
