@@ -241,10 +241,10 @@ class Data:
 
         return torch.from_numpy(vec_context).long(),     \
                torch.from_numpy(context_lens),           \
-               torch.from_numpy(vec_floors),             \
+               torch.from_numpy(vec_floors).long(),      \
                torch.from_numpy(batch_topic).long(),     \
-               torch.from_numpy(my_profiles),            \
-               torch.from_numpy(ot_profiles),            \
+               torch.from_numpy(my_profiles).float(),    \
+               torch.from_numpy(ot_profiles).float(),    \
                torch.from_numpy(vec_outs).long(),        \
                torch.from_numpy(vec_out_lens),           \
                torch.from_numpy(vec_out_des).long()
