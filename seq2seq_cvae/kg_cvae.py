@@ -134,24 +134,18 @@ class KgRnnCVAE(nn.Module):
         max_out_len = self.output_tokens.size(1)
         batch_size = self.input_contexts.size(0)
 
-        # ==========================================================
-        # embedding
-        # ==========================================================
+        # ========================== embedding ==========================
         topic_embeded = self.topic_embedding(self.topics)
         if Config.use_hcf:
             act_embeded = self.act_embedding(self.output_des)
         utt_input_embeded = self.word_embedding(self.input_contexts.view(-1, Config.max_utt_length))
         utt_output_embeded = self.word_embedding(self.output_tokens)
 
-        # ==========================================================
-        # utterance encoder
-        # ==========================================================
+        # ========================== utterance encoder ==========================
         utt_input_embeded, sent_embeded_dim = self.utt_encoder(utt_input_embeded)
         utt_output_embeded, _ = self.utt_encoder(utt_output_embeded, self.output_lens)
 
-        # ==========================================================
-        # context encoder
-        # ==========================================================
+        # ========================== context encoder ==========================
         # reshape input into dialogs
         utt_input_embeded = utt_input_embeded.view(-1, max_dialog_len, sent_embeded_dim)
 
@@ -163,9 +157,7 @@ class KgRnnCVAE(nn.Module):
         ctx_input_embeded = torch.cat([utt_input_embeded, floor_one_hot], 2)
         _, ctx_enc_last_state = self.ctx_encoder(ctx_input_embeded, self.context_lens)
 
-        # ==========================================================
-        # cvae
-        # ==========================================================
+        # ========================== cvae ==========================
         # combine with other attributes
         if Config.use_hcf:
             attribute_embeded = act_embeded
@@ -188,9 +180,7 @@ class KgRnnCVAE(nn.Module):
         else:
             latent_sample = sample_gaussian(recog_mu, recog_logvar)
 
-        # ==========================================================
-        # bow and y project
-        # ==========================================================
+        # ========================== bow and y project ==========================
         gen_inputs = torch.cat([cond_embeded, latent_sample], 1)
         bow_logits = self.bow_project(gen_inputs)
 
@@ -207,21 +197,15 @@ class KgRnnCVAE(nn.Module):
             y_logits = gen_inputs.new_zeros(batch_size, Config.act_vocab_size)
             enc_outputs = gen_inputs
 
-        # ==========================================================
-        # decoder
-        # ==========================================================
+        # ========================== decoder ==========================
         dec_input_tokens = self.output_tokens[:, :-1]
+        labels = self.output_tokens[:, 1:]
         dec_input_embeded = self.word_embedding(dec_input_tokens)
         dec_seq_lens = self.output_lens - 1
 
         dec_outs, _, final_context_state = self.decoder(dec_input_embeded, enc_outputs, dec_seq_lens, selected_attribute_embedding)
 
-        if final_context_state is not None:
-            dec_out_words = final_context_state
-        else:
-            dec_out_words = torch.max(dec_outs, 2)[1]
-
-        return dec_out_words, bow_logits, y_logits
+        return dec_outs, final_context_state, labels, bow_logits, y_logits
 
 
 if __name__ == "__main__":
