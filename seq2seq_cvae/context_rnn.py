@@ -15,7 +15,7 @@ from seq2seq_cvae.config import Config
 class ContextRNN(nn.Module):
     def __init__(self):
         super(ContextRNN, self).__init__()
-        self.ctx_encoder = self.get_rnncell("gru", Config.ctx_input_size, Config.ctx_hidden_size, 1, Config.keep_prob)
+        self.ctx_encoder = self.get_rnncell("gru", Config.ctx_input_size, Config.ctx_hidden_size, Config.ctx_num_layer, Config.keep_prob)
 
     @staticmethod
     def get_rnncell(cell_type, input_size, hidden_size, num_layer, keep_prob, bidirectional=False):
