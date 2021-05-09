@@ -1,4 +1,5 @@
 
+import os
 import torch
 
 
@@ -13,13 +14,15 @@ class Config:
     word_vocab_size = 1
     topic_vocab_size = 1
     act_vocab_size = 1
+    word2vec = []
 
     word_embed_size = 200
     topic_embed_size = 30
     act_embed_size = 30
 
+    word_vec_path = os.path.join("..", "glove", "glove.6B.200d.txt")
+
     utt_num_layer = 1
-    utt_input_size = word_embed_size
     utt_hidden_size = 300
 
     ctx_num_layer = 1
@@ -37,12 +40,11 @@ class Config:
     dec_num_layer = 1
     dec_inputs_size = gen_inputs_size
     if use_hcf:
-        dec_inputs_size += 30
+        dec_inputs_size += act_embed_size
     dec_hidden_size = 400
-
     dec_input_embedding_size = word_embed_size
     if use_hcf:
-        dec_input_embedding_size += 30
+        dec_input_embedding_size += act_embed_size
 
     step_size = 1                                  # internal usage
     batch_size = 60                                # mini-batch size
