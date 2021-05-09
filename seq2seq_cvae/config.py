@@ -34,10 +34,11 @@ class Config:
 
     gen_inputs_size = prior_input_size + latent_size
 
+    dec_num_layer = 1
     dec_inputs_size = gen_inputs_size
     if use_hcf:
         dec_inputs_size += 30
-    res_hidden_size = 400
+    dec_hidden_size = 400
 
     step_size = 1                                  # internal usage
     batch_size = 60                                # mini-batch size
