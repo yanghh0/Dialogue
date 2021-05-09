@@ -21,7 +21,13 @@ class DecoderRNN(nn.Module):
         else:
             self.dec_init_state_net = nn.Linear(Config.dec_inputs_size, Config.dec_hidden_size)
 
-        self.decoder = self.get_rnncell("gru", Config.dec_input_embedding_size, Config.dec_hidden_size, Config.dec_num_layer, Config.keep_prob)
+        self.decoder = self.get_rnncell(
+            "gru", 
+            Config.dec_input_embedding_size, 
+            Config.dec_hidden_size, 
+            Config.dec_num_layer, 
+            Config.keep_prob
+        )
         self.fc = nn.Linear(Config.dec_hidden_size, Config.word_vocab_size)
 
     @staticmethod
