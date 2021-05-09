@@ -36,7 +36,7 @@ class DecoderRNN(nn.Module):
                 )
         return cell
 
-    def forward(self, inputs, enc_outputs, inputs_length, context_vector):
+    def forward(self, inputs, enc_outputs, inputs_length, attr_vector):
         if Config.dec_num_layer > 1:
             dec_init_state = [self.dec_init_state_net[i](enc_outputs) for i in range(Config.dec_num_layer)]
             dec_init_state = torch.stack(dec_init_state)
@@ -44,8 +44,8 @@ class DecoderRNN(nn.Module):
             dec_init_state = self.dec_init_state_net(enc_outputs).unsqueeze(0)
 
         inputs = F.dropout(inputs, 1 - Config.keep_prob, self.training)
-        if context_vector is not None:
-            inputs = torch.cat([inputs, context_vector.unsqueeze(1).expand(inputs.size(0), inputs.size(1), context_vector.size(1))], 2)
+        if attr_vector is not None:
+            inputs = torch.cat([inputs, attr_vector.unsqueeze(1).expand(inputs.size(0), inputs.size(1), attr_vector.size(1))], 2)
 
         sorted_lens, len_ix = inputs_length.sort(0, descending=True)
 
