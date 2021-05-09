@@ -15,7 +15,7 @@ from seq2seq_cvae.config import Config
 class UtteranceRNN(nn.Module):
     def __init__(self):
         super(UtteranceRNN, self).__init__()
-        self.utt_encoder = self.get_rnncell("gru", Config.utt_input_size, Config.utt_hidden_size, 1, Config.keep_prob, True)
+        self.utt_encoder = self.get_rnncell("gru", Config.utt_input_size, Config.utt_hidden_size, Config.utt_num_layer, Config.keep_prob, True)
 
     @staticmethod
     def get_rnncell(cell_type, input_size, hidden_size, num_layer, keep_prob, bidirectional=False):
