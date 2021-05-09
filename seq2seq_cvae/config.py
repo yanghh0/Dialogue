@@ -40,9 +40,14 @@ class Config:
         dec_inputs_size += 30
     dec_hidden_size = 400
 
+    dec_input_embedding_size = word_embed_size
+    if use_hcf:
+        dec_input_embedding_size += 30
+
     step_size = 1                                  # internal usage
     batch_size = 60                                # mini-batch size
     backward_size = 10                             # how many utterance kept in the context window
 
     init_lr = 0.001                                # initial learning rate
     keep_prob = 1.0                                # drop out rate
+    dec_keep_prob = 1.0
