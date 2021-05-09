@@ -20,3 +20,5 @@ y = torch.tensor([[[0.1226, 0.8115, 0.4449, 0.1237, 0.4720],
 
 print(torch.unbind(y))
 print(torch.unbind(y, 1))  # y[:, i, :]
+z = torch.cat([_ for _ in torch.unbind(y)], 1)
+print(z)
