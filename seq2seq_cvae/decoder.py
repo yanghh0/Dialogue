@@ -36,12 +36,12 @@ class DecoderRNN(nn.Module):
                 )
         return cell
 
-    def forward(self, inputs, dec_outputs, inputs_length, context_vector):
+    def forward(self, inputs, enc_outputs, inputs_length, context_vector):
         if Config.dec_num_layer > 1:
-            dec_init_state = [self.dec_init_state_net[i](dec_outputs) for i in range(Config.dec_num_layer)]
+            dec_init_state = [self.dec_init_state_net[i](enc_outputs) for i in range(Config.dec_num_layer)]
             dec_init_state = torch.stack(dec_init_state)
         else:
-            dec_init_state = self.dec_init_state_net(dec_outputs).unsqueeze(0)
+            dec_init_state = self.dec_init_state_net(enc_outputs).unsqueeze(0)
 
         inputs = F.dropout(inputs, 1 - Config.keep_prob, self.training)
         if context_vector is not None:
