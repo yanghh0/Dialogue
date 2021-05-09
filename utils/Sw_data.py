@@ -24,6 +24,7 @@ class Data:
         self.topic_alphabet = Alphabet('topic')
         self.act_alphabet = Alphabet('act')
         self.build_alphabet()
+        self.load_word2vec()
 
         self.utt_corpus_dict = self.get_utt_corpus()
         self.meta_corpus_dict = self.get_meta_corpus()
@@ -91,6 +92,29 @@ class Data:
                     self.act_alphabet.addToken(feat[0])
         Config.act_vocab_size = self.act_alphabet.num_tokens
         print("%d dialog acts in train data" % self.act_alphabet.num_tokens)
+
+    def load_word2vec(self):
+        if Config.word_vec_path is None:
+            return
+        with open(Config.word_vec_path, "rb") as f:
+            lines = f.readlines()
+        raw_word2vec = {}
+        for l in lines:
+            w, vec = l.decode().split(" ", 1)
+            raw_word2vec[w] = vec
+        # clean up lines for memory efficiency
+        word2vec = []
+        oov_cnt = 0
+        for v in self.word_alphabet.index2token:
+            str_vec = raw_word2vec.get(v, None)
+            if str_vec is None:
+                oov_cnt += 1
+                vec = np.random.randn(Config.word_embed_size) * 0.1
+            else:
+                vec = np.fromstring(str_vec, sep=" ")
+            word2vec.append(vec)
+        Config.word2vec = word2vec
+        print("word2vec cannot cover %f vocab" % (float(oov_cnt)/len(self.word_alphabet.index2token)))
 
     def get_utt_corpus(self):
         """convert utterance into numbers
@@ -240,13 +264,13 @@ class Data:
             vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
 
         return torch.from_numpy(vec_context).long(),     \
-               torch.from_numpy(context_lens),           \
+               torch.from_numpy(context_lens).long(),    \
                torch.from_numpy(vec_floors).long(),      \
                torch.from_numpy(batch_topic).long(),     \
                torch.from_numpy(my_profiles).float(),    \
                torch.from_numpy(ot_profiles).float(),    \
                torch.from_numpy(vec_outs).long(),        \
-               torch.from_numpy(vec_out_lens),           \
+               torch.from_numpy(vec_out_lens).long(),    \
                torch.from_numpy(vec_out_des).long()
 
 
