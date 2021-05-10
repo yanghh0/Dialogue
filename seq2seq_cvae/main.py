@@ -18,13 +18,12 @@ from seq2seq_cvae.config import Config
 from utils.functions import gaussian_kld
 
 
-class ChatbotTrainer:
+class Chatbot:
     def __init__(self, data_obj):
         self.train_feed = data_obj
         self.model = KgRnnCVAE()
 
-        self.model.apply(lambda m: [torch.nn.init.uniform_(p.data, -1.0 * Config.init_w, Config.init_w) 
-            for p in m.parameters()])
+        self.model.apply(self.weight_init)
         self.model.word_embedding.weight.data.copy_(torch.from_numpy(np.array(Config.word2vec)))
 
         self.optimizer = optim.Adam(self.model.parameters(), Config.init_lr)
@@ -38,6 +37,11 @@ class ChatbotTrainer:
 
         if Config.use_gpu:
             self.model.cuda()
+
+    @staticmethod
+    def weight_init(m):
+        for p in m.parameters():
+            nn.init.uniform_(p.data, -1.0 * Config.init_w, Config.init_w)
 
     def cal_loss(self, dec_outs, output_des, 
                  labels, 
@@ -109,6 +113,12 @@ class ChatbotTrainer:
 
         return avg_losses[0]
 
+    def valid_epoch(self):
+        pass
+
+    def test_epoch(self):
+        pass
+
     def train_model(self):
         print("Starting Training!")
 
@@ -123,5 +133,5 @@ if __name__ == "__main__":
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
     train_feed = Data(corpus_file, "train")
 
-    cbt = ChatbotTrainer(train_feed)
+    cbt = Chatbot(train_feed)
     cbt.train_model()
