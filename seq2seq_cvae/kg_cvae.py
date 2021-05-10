@@ -11,9 +11,6 @@ import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
 import tensorflow as tf
-import tensorboardX as tb
-import tensorboardX.summary
-import tensorboardX.writer
 from seq2seq_cvae.config import Config
 from seq2seq_cvae.context_encoder import ContextRNN
 from seq2seq_cvae.utterance_encoder import UtteranceRNN
@@ -239,15 +236,13 @@ class KgRnnCVAE(nn.Module):
         elbo = avg_rc_loss + kl_weights * avg_kld
         aug_elbo = avg_bow_loss + avg_act_loss + elbo
 
-        summary_op = [
-            tb.summary.scalar("model/loss/act_loss", avg_act_loss.item()),
-            tb.summary.scalar("model/loss/rc_loss", avg_rc_loss.item()),
-            tb.summary.scalar("model/loss/elbo", elbo.item()),
-            tb.summary.scalar("model/loss/kld", avg_kld.item()),
-            tb.summary.scalar("model/loss/bow_loss", avg_bow_loss.item())
-        ]
-
-        return elbo.item(), avg_bow_loss.item(), avg_rc_loss.item(),  avg_kld.item()
+        return aug_elbo,            \
+               elbo.item(),         \
+               avg_bow_loss.item(), \
+               avg_rc_loss.item(),  \
+               avg_kld.item(),      \
+               avg_act_loss.item(), \
+               kl_w
 
 
 if __name__ == "__main__":
