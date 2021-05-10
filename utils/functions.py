@@ -75,6 +75,13 @@ def sample_gaussian(mu, logvar):
     return z
 
 
+def gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar):
+    kld = -0.5 * torch.sum(1 - (prior_logvar - recog_logvar)
+                             - torch.div(torch.pow(prior_mu - recog_mu, 2), torch.exp(prior_logvar))
+                             - torch.div(torch.exp(recog_logvar), torch.exp(prior_logvar)), 1)
+    return kld
+
+
 if __name__ == "__main__":
     s = " do you like china? it's a good place. EOS\r\n"
     print(normalizeString(s))
