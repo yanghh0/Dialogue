@@ -12,5 +12,5 @@ glove.6B.100d.txt
 .idea/
 datasets/
 Checkpoint/
-test.py
+temp_test.py
 glove/
