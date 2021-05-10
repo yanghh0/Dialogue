@@ -37,7 +37,7 @@ class UtteranceRNN(nn.Module):
         return cell
 
     def forward(self, inputs, sequence_length=None):
-        """shape of inputs: (60, 40, 200)
+        """shape of inputs: (-1, 40, 200)
         """
         if sequence_length is None:
             sequence_length = torch.sum(torch.sign(torch.max(torch.abs(inputs), 2)[0]), 1).long()
