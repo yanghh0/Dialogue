@@ -23,7 +23,7 @@ class DecoderRNN(nn.Module):
 
         self.decoder = self.get_rnncell(
             "gru", 
-            Config.dec_input_embedding_size, 
+            Config.dec_input_embed_size, 
             Config.dec_hidden_size, 
             Config.dec_num_layer, 
             Config.keep_prob
@@ -43,6 +43,9 @@ class DecoderRNN(nn.Module):
         return cell
 
     def forward(self, inputs, enc_outputs, inputs_length, attr_vector):
+        """shape of inputs: (60, 40, 200)
+           shape of attr_vector: (60, 30)
+        """
         if Config.dec_num_layer > 1:
             dec_init_state = [self.dec_init_state_net[i](enc_outputs) for i in range(Config.dec_num_layer)]
             dec_init_state = torch.stack(dec_init_state)
