@@ -3,7 +3,10 @@ import re
 import torch
 import unicodedata
 import itertools
+import numpy as np
 import nltk
+from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import SmoothingFunction
 
 
 def unicodeToAscii(s):
@@ -80,6 +83,25 @@ def gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar):
                              - torch.div(torch.pow(prior_mu - recog_mu, 2), torch.exp(prior_logvar))
                              - torch.div(torch.exp(recog_logvar), torch.exp(prior_logvar)), 1)
     return kld
+
+
+def print_loss(prefix, loss_names, losses, postfix):
+    template = "%s "
+    for name in loss_names:
+        template += "%s " % name
+        template += " %f "
+    template += "%s"
+    template = re.sub(' +', ' ', template)
+    avg_losses = []
+    values = [prefix]
+
+    for loss in losses:
+        values.append(np.mean(loss))
+        avg_losses.append(np.mean(loss))
+    values.append(postfix)
+
+    print(template % tuple(values))
+    return avg_losses
 
 
 if __name__ == "__main__":
