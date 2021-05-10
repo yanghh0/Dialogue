@@ -54,3 +54,6 @@ class Config:
     keep_prob = 1.0              # drop out rate
     dec_keep_prob = 1.0
     full_kl_step = 10000         # how many batch before KL cost weight reaches 1.0
+    max_epoch = 60               # max number of epoch of training
+    grad_clip = 5.0              # gradient abs max cut
+    init_w = 0.08                # uniform random from [-init_w, init_w]
