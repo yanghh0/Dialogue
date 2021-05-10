@@ -65,7 +65,6 @@ class KgRnnCVAE(nn.Module):
         self.output_des = tf.placeholder(dtype=tf.int64, shape=(None,), name="output_dialog_acts")
 
         # optimization related variables
-        self.global_t = tf.placeholder(dtype=tf.int64, name="global_t")
         self.use_prior = tf.placeholder(dtype=tf.bool, name="use_prior")
 
         self.word_embedding = nn.Embedding(Config.word_vocab_size, Config.word_embed_size, padding_idx=0)
@@ -81,7 +80,7 @@ class KgRnnCVAE(nn.Module):
         self.loss_project = MLPby()
         self.decoder = DecoderRNN()
 
-    def batch_feed(self, batch_data, global_t, use_prior, repeat=1):
+    def batch_feed(self, batch_data, use_prior, repeat=1):
         context, context_lens, floors, topics, my_profiles, ot_profiles, outputs, output_lens, output_des = batch_data
         feed_dict = {
             "input_contexts": context, 
@@ -105,9 +104,6 @@ class KgRnnCVAE(nn.Module):
                 multipliers[0] = repeat
                 tiled_feed_dict[key] = np.tile(val, multipliers)
             feed_dict = tiled_feed_dict
-
-        if global_t is not None:
-            feed_dict["global_t"] = global_t
 
         if Config.use_gpu:
             feed_dict = {k: v.cuda() if isinstance(v, torch.Tensor) else v for k, v in feed_dict.items()}
@@ -180,7 +176,10 @@ class KgRnnCVAE(nn.Module):
 
         dec_outs, _, final_context_state = self.decoder(dec_input_embeded, enc_outputs, dec_seq_lens, selected_act_embeded)
 
-        return dec_outs, labels, bow_logits, act_logits
+        return dec_outs, self.output_des, \
+               labels, \
+               bow_logits, act_logits, \
+               recog_mu, recog_logvar, prior_mu, prior_logvar
 
 
 if __name__ == "__main__":
@@ -192,16 +191,14 @@ if __name__ == "__main__":
     if Config.use_gpu:
         model.cuda()
 
-    global_t = 1
     train_feed.epoch_init()
     
     while True:
         batch_data = train_feed.next_batch()
         if batch_data is None:
             break
-        feed_dict = model.batch_feed(batch_data, global_t, use_prior=False)
+        feed_dict = model.batch_feed(batch_data, use_prior=False)
         model(feed_dict, mode='train')
-        global_t += 1
         exit()
 
 
