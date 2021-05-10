@@ -10,3 +10,5 @@ index = torch.LongTensor([[2, 1, 0, 3],
                           [3, 2, 1, 0]])
 y = torch.gather(x, 1, index)
 print(y)
+y = x.gather(1, index)
+print(y)
