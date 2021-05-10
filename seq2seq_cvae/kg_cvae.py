@@ -70,7 +70,6 @@ class KgRnnCVAE(nn.Module):
         self.topic_embedding = nn.Embedding(Config.topic_vocab_size, Config.topic_embed_size)
         if Config.use_hcf:
             self.act_embedding = nn.Embedding(Config.act_vocab_size, Config.act_embed_size)
-        self.word_embedding.weight.data.copy_(torch.from_numpy(np.array(Config.word2vec)))
 
         self.utt_encoder = UtteranceRNN()
         self.ctx_encoder = ContextRNN()
