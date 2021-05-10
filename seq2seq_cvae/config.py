@@ -46,10 +46,11 @@ class Config:
     if use_hcf:
         dec_input_embedding_size += act_embed_size
 
-    step_size = 1                                  # internal usage
-    batch_size = 60                                # mini-batch size
-    backward_size = 10                             # how many utterance kept in the context window
+    step_size = 1                # internal usage
+    batch_size = 60              # mini-batch size
+    backward_size = 10           # how many utterance kept in the context window
 
-    init_lr = 0.001                                # initial learning rate
-    keep_prob = 1.0                                # drop out rate
+    init_lr = 0.001              # initial learning rate
+    keep_prob = 1.0              # drop out rate
     dec_keep_prob = 1.0
+    full_kl_step = 10000         # how many batch before KL cost weight reaches 1.0
