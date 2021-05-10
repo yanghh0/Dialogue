@@ -174,7 +174,13 @@ class KgRnnCVAE(nn.Module):
         dec_input_embeded = self.word_embedding(dec_input_tokens)
         dec_seq_lens = self.output_lens - 1
 
-        dec_outs, _, final_context_state = self.decoder(dec_input_embeded, enc_outputs, dec_seq_lens, selected_act_embeded)
+        dec_outs, _, final_context_state = self.decoder(mode, dec_input_embeded, 
+                             enc_outputs, dec_seq_lens, selected_act_embeded, self.word_embedding)
+
+        if final_context_state is not None:
+            dec_out_words = final_context_state
+        else:
+            dec_out_words = torch.max(dec_outs, 2)[1]
 
         return dec_outs, self.output_des, \
                labels, \
