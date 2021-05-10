@@ -12,8 +12,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 import tensorflow as tf
 from seq2seq_cvae.config import Config
-from seq2seq_cvae.context_encoder import ContextRNN
-from seq2seq_cvae.utterance_encoder import UtteranceRNN
+from seq2seq_cvae.ctx_encoder import ContextRNN
+from seq2seq_cvae.utt_encoder import UtteranceRNN
+from seq2seq_cvae.act_encoder import ActFC
+from seq2seq_cvae.mlp_b_y import MLPby
 from seq2seq_cvae.decoder import DecoderRNN
 from utils.Sw_data import Data
 from utils.functions import sample_gaussian, gaussian_kld
@@ -73,25 +75,10 @@ class KgRnnCVAE(nn.Module):
 
         self.utt_encoder = UtteranceRNN()
         self.ctx_encoder = ContextRNN()
-        self.attribute_fc1 = nn.Sequential(
-            nn.Linear(Config.act_embed_size, 30), 
-            nn.Tanh()
-        )
+        self.act_encoder = ActFC()
         self.recogNet_mulogvar = RecognitionNetwork()
         self.priorNet_mulogvar = PriorNetwork()
-        self.bow_project = nn.Sequential(
-            nn.Linear(Config.gen_inputs_size, 400),
-            nn.Tanh(),
-            nn.Dropout(1 - Config.keep_prob),
-            nn.Linear(400, Config.word_vocab_size)
-        )
-        if Config.use_hcf:
-            self.act_project = nn.Sequential(
-                nn.Linear(Config.gen_inputs_size, 400),
-                nn.Tanh(),
-                nn.Dropout(1 - Config.keep_prob),
-                nn.Linear(400, Config.act_vocab_size)
-            )
+        self.loss_project = MLPby()
         self.decoder = DecoderRNN()
 
     def batch_feed(self, batch_data, global_t, use_prior, repeat=1):
@@ -134,21 +121,16 @@ class KgRnnCVAE(nn.Module):
             setattr(self, k, v)
 
         max_dialog_len = self.input_contexts.size(1)
-        max_out_len = self.output_tokens.size(1)
-        batch_size = self.input_contexts.size(0)
 
-        # ========================== embedding ==========================
         topic_embeded = self.topic_embedding(self.topics)
         if Config.use_hcf:
             act_embeded = self.act_embedding(self.output_des)
         utt_input_embeded = self.word_embedding(self.input_contexts.view(-1, Config.max_utt_length))
         utt_output_embeded = self.word_embedding(self.output_tokens)
 
-        # ========================== utterance encoder ==========================
         utt_input_embeded, sent_embeded_dim = self.utt_encoder(utt_input_embeded)
         utt_output_embeded, _ = self.utt_encoder(utt_output_embeded, self.output_lens)
 
-        # ========================== context encoder ==========================
         # reshape input into dialogs
         utt_input_embeded = utt_input_embeded.view(-1, max_dialog_len, sent_embeded_dim)
 
@@ -160,17 +142,11 @@ class KgRnnCVAE(nn.Module):
         ctx_input_embeded = torch.cat([utt_input_embeded, floor_one_hot], 2)
         _, ctx_enc_last_state = self.ctx_encoder(ctx_input_embeded, self.context_lens)
 
-        # ========================== cvae ==========================
-        # combine with other attributes
-        if Config.use_hcf:
-            attribute_embeded = act_embeded
-            attribute_fc1 = self.attribute_fc1(attribute_embeded)
-
         cond_list = [topic_embeded, self.my_profile, self.ot_profile, ctx_enc_last_state]
         cond_embeded = torch.cat(cond_list, 1)
 
         if Config.use_hcf:
-            recog_input_embeded = torch.cat([cond_embeded, utt_output_embeded, attribute_fc1], 1)
+            recog_input_embeded = torch.cat([cond_embeded, utt_output_embeded, self.act_encoder(act_embeded)], 1)
         else:
             recog_input_embeded = torch.cat([cond_embeded, utt_output_embeded], 1)
 
@@ -183,65 +159,28 @@ class KgRnnCVAE(nn.Module):
         else:
             latent_sample = sample_gaussian(recog_mu, recog_logvar)
 
-        # ========================== bow and act project ==========================
         gen_inputs = torch.cat([cond_embeded, latent_sample], 1)
-        bow_logits = self.bow_project(gen_inputs)
+        bow_logits, act_logits = self.loss_project(gen_inputs)
 
         if Config.use_hcf:
-            act_logits = self.act_project(gen_inputs)
             act_prob = F.softmax(act_logits, dim=1)
-            pred_attribute_embedding = torch.matmul(act_prob, self.act_embedding.weight)
+            pred_act_embeded = torch.matmul(act_prob, self.act_embedding.weight)
             if mode == 'test':
-                selected_attribute_embedding = pred_attribute_embedding
+                selected_act_embeded = pred_act_embeded
             else:
-                selected_attribute_embedding = attribute_embeded
-            enc_outputs = torch.cat([gen_inputs, selected_attribute_embedding], 1)
+                selected_act_embeded = act_embeded
+            enc_outputs = torch.cat([gen_inputs, selected_act_embeded], 1)
         else:
-            act_logits = gen_inputs.new_zeros(batch_size, Config.act_vocab_size)
             enc_outputs = gen_inputs
 
-        # ========================== decoder ==========================
         dec_input_tokens = self.output_tokens[:, :-1]
         labels = self.output_tokens[:, 1:]
         dec_input_embeded = self.word_embedding(dec_input_tokens)
         dec_seq_lens = self.output_lens - 1
 
-        dec_outs, _, final_context_state = self.decoder(dec_input_embeded, enc_outputs, dec_seq_lens, selected_attribute_embedding)
+        dec_outs, _, final_context_state = self.decoder(dec_input_embeded, enc_outputs, dec_seq_lens, selected_act_embeded)
 
-        # ========================== loss ==========================
-        label_mask = torch.sign(labels).detach().float()
-        rc_loss = F.cross_entropy(dec_outs.view(-1, dec_outs.size(-1)), labels.reshape(-1), reduction='none').view(dec_outs.size()[:-1])
-
-        rc_loss = torch.sum(rc_loss * label_mask, 1)
-        avg_rc_loss = rc_loss.mean()
-
-        bow_loss = -F.log_softmax(bow_logits, dim=1).gather(1, labels) * label_mask
-        bow_loss = torch.sum(bow_loss, 1)
-        avg_bow_loss  = torch.mean(bow_loss)
-
-        if Config.use_hcf:
-            avg_act_loss = F.cross_entropy(act_logits, self.output_des)
-        else:
-            avg_act_loss = avg_bow_loss.new_tensor(0)
-
-        kld = gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar)
-        avg_kld = torch.mean(kld)
-        if mode == 'train':
-            kl_weights = min(self.global_t / Config.full_kl_step, 1.0)
-        else:
-            kl_weights = 1.0
-
-        kl_w = kl_weights
-        elbo = avg_rc_loss + kl_weights * avg_kld
-        aug_elbo = avg_bow_loss + avg_act_loss + elbo
-
-        return aug_elbo,            \
-               elbo.item(),         \
-               avg_bow_loss.item(), \
-               avg_rc_loss.item(),  \
-               avg_kld.item(),      \
-               avg_act_loss.item(), \
-               kl_w
+        return dec_outs, labels, bow_logits, act_logits
 
 
 if __name__ == "__main__":
