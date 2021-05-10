@@ -36,7 +36,7 @@ class ContextRNN(nn.Module):
         return cell
 
     def forward(self, inputs, sequence_length):
-        """shape of inputs: (60, 9, 602)
+        """shape of inputs: (60, 9, 600 + 2)
         """
         sorted_lens, len_ix = sequence_length.sort(0, descending=True)
 
