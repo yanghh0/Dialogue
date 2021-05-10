@@ -42,9 +42,9 @@ class Config:
     if use_hcf:
         dec_inputs_size += act_embed_size
     dec_hidden_size = 400
-    dec_input_embedding_size = word_embed_size
+    dec_input_embed_size = word_embed_size
     if use_hcf:
-        dec_input_embedding_size += act_embed_size
+        dec_input_embed_size += act_embed_size
 
     step_size = 1                # internal usage
     batch_size = 60              # mini-batch size
@@ -57,3 +57,7 @@ class Config:
     max_epoch = 60               # max number of epoch of training
     grad_clip = 5.0              # gradient abs max cut
     init_w = 0.08                # uniform random from [-init_w, init_w]
+
+    improve_threshold = 0.996    # for early stopping
+    patient_increase = 2.0       # for early stopping
+    early_stop = True
