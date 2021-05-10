@@ -11,12 +11,15 @@ import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
 import tensorflow as tf
+import tensorboardX as tb
+import tensorboardX.summary
+import tensorboardX.writer
 from seq2seq_cvae.config import Config
 from seq2seq_cvae.context_encoder import ContextRNN
 from seq2seq_cvae.utterance_encoder import UtteranceRNN
 from seq2seq_cvae.decoder import DecoderRNN
 from utils.Sw_data import Data
-from utils.functions import sample_gaussian
+from utils.functions import sample_gaussian, gaussian_kld
 
 
 class RecognitionNetwork(nn.Module):
@@ -63,6 +66,7 @@ class KgRnnCVAE(nn.Module):
         self.output_des = tf.placeholder(dtype=tf.int64, shape=(None,), name="output_dialog_acts")
 
         # optimization related variables
+        self.global_t = tf.placeholder(dtype=tf.int64, name="global_t")
         self.use_prior = tf.placeholder(dtype=tf.bool, name="use_prior")
 
         self.word_embedding = nn.Embedding(Config.word_vocab_size, Config.word_embed_size, padding_idx=0)
@@ -86,7 +90,7 @@ class KgRnnCVAE(nn.Module):
             nn.Linear(400, Config.word_vocab_size)
         )
         if Config.use_hcf:
-            self.y_project = nn.Sequential(
+            self.act_project = nn.Sequential(
                 nn.Linear(Config.gen_inputs_size, 400),
                 nn.Tanh(),
                 nn.Dropout(1 - Config.keep_prob),
@@ -94,7 +98,7 @@ class KgRnnCVAE(nn.Module):
             )
         self.decoder = DecoderRNN()
 
-    def batch_feed(self, batch_data, use_prior, repeat=1):
+    def batch_feed(self, batch_data, global_t, use_prior, repeat=1):
         context, context_lens, floors, topics, my_profiles, ot_profiles, outputs, output_lens, output_des = batch_data
         feed_dict = {
             "input_contexts": context, 
@@ -118,6 +122,9 @@ class KgRnnCVAE(nn.Module):
                 multipliers[0] = repeat
                 tiled_feed_dict[key] = np.tile(val, multipliers)
             feed_dict = tiled_feed_dict
+
+        if global_t is not None:
+            feed_dict["global_t"] = global_t
 
         if Config.use_gpu:
             feed_dict = {k: v.cuda() if isinstance(v, torch.Tensor) else v for k, v in feed_dict.items()}
@@ -180,21 +187,21 @@ class KgRnnCVAE(nn.Module):
         else:
             latent_sample = sample_gaussian(recog_mu, recog_logvar)
 
-        # ========================== bow and y project ==========================
+        # ========================== bow and act project ==========================
         gen_inputs = torch.cat([cond_embeded, latent_sample], 1)
         bow_logits = self.bow_project(gen_inputs)
 
         if Config.use_hcf:
-            y_logits = self.y_project(gen_inputs)
-            y_prob = F.softmax(y_logits, dim=1)
-            pred_attribute_embedding = torch.matmul(y_prob, self.act_embedding.weight)
+            act_logits = self.act_project(gen_inputs)
+            act_prob = F.softmax(act_logits, dim=1)
+            pred_attribute_embedding = torch.matmul(act_prob, self.act_embedding.weight)
             if mode == 'test':
                 selected_attribute_embedding = pred_attribute_embedding
             else:
                 selected_attribute_embedding = attribute_embeded
             enc_outputs = torch.cat([gen_inputs, selected_attribute_embedding], 1)
         else:
-            y_logits = gen_inputs.new_zeros(batch_size, Config.act_vocab_size)
+            act_logits = gen_inputs.new_zeros(batch_size, Config.act_vocab_size)
             enc_outputs = gen_inputs
 
         # ========================== decoder ==========================
@@ -205,7 +212,42 @@ class KgRnnCVAE(nn.Module):
 
         dec_outs, _, final_context_state = self.decoder(dec_input_embeded, enc_outputs, dec_seq_lens, selected_attribute_embedding)
 
-        return dec_outs, final_context_state, labels, bow_logits, y_logits
+        # ========================== loss ==========================
+        label_mask = torch.sign(labels).detach().float()
+        rc_loss = F.cross_entropy(dec_outs.view(-1, dec_outs.size(-1)), labels.reshape(-1), reduction='none').view(dec_outs.size()[:-1])
+
+        rc_loss = torch.sum(rc_loss * label_mask, 1)
+        avg_rc_loss = rc_loss.mean()
+
+        bow_loss = -F.log_softmax(bow_logits, dim=1).gather(1, labels) * label_mask
+        bow_loss = torch.sum(bow_loss, 1)
+        avg_bow_loss  = torch.mean(bow_loss)
+
+        if Config.use_hcf:
+            avg_act_loss = F.cross_entropy(act_logits, self.output_des)
+        else:
+            avg_act_loss = avg_bow_loss.new_tensor(0)
+
+        kld = gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar)
+        avg_kld = torch.mean(kld)
+        if mode == 'train':
+            kl_weights = min(self.global_t / Config.full_kl_step, 1.0)
+        else:
+            kl_weights = 1.0
+
+        kl_w = kl_weights
+        elbo = avg_rc_loss + kl_weights * avg_kld
+        aug_elbo = avg_bow_loss + avg_act_loss + elbo
+
+        summary_op = [
+            tb.summary.scalar("model/loss/act_loss", avg_act_loss.item()),
+            tb.summary.scalar("model/loss/rc_loss", avg_rc_loss.item()),
+            tb.summary.scalar("model/loss/elbo", elbo.item()),
+            tb.summary.scalar("model/loss/kld", avg_kld.item()),
+            tb.summary.scalar("model/loss/bow_loss", avg_bow_loss.item())
+        ]
+
+        return elbo.item(), avg_bow_loss.item(), avg_rc_loss.item(),  avg_kld.item()
 
 
 if __name__ == "__main__":
@@ -217,14 +259,16 @@ if __name__ == "__main__":
     if Config.use_gpu:
         model.cuda()
 
+    global_t = 1
     train_feed.epoch_init()
     
     while True:
         batch_data = train_feed.next_batch()
         if batch_data is None:
             break
-        feed_dict = model.batch_feed(batch_data, use_prior=False)
+        feed_dict = model.batch_feed(batch_data, global_t, use_prior=False)
         model(feed_dict, mode='train')
+        global_t += 1
         exit()
 
 
