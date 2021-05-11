@@ -39,6 +39,7 @@ class Data:
         self.num_batch = 0
         self.epoch_data = []
         self.grid_indexes = []
+        self.batch_size = 1 if mode == "test" else Config.batch_size
 
         print("Done loading corpus!")
 
@@ -155,11 +156,11 @@ class Data:
     def epoch_init(self, shuffle=True, intra_shuffle=True):
         self.pointer = 0
 
-        temp_num_batch = len(self.s_dialogs) // Config.batch_size
+        temp_num_batch = len(self.s_dialogs) // self.batch_size
         self.epoch_data = []
 
         for i in range(temp_num_batch):
-            self.epoch_data.append(self.s_indexes[i*Config.batch_size : (i+1)*Config.batch_size])
+            self.epoch_data.append(self.s_indexes[i*self.batch_size : (i+1)*self.batch_size])
         if shuffle:
             np.random.shuffle(self.epoch_data)
 
@@ -202,7 +203,7 @@ class Data:
         batch_meta = [self.s_metas[idx] for idx in batch_data]
         batch_topic = np.array([meta[2] for meta in batch_meta])
 
-        assert Config.batch_size == len(batch_data)
+        assert self.batch_size == len(batch_data)
 
         context_utts = []
         floors = []
@@ -253,14 +254,14 @@ class Data:
         ot_profiles = np.array([meta[1-out_floors[idx]] for idx, meta in enumerate(batch_meta)])
 
         context_lens = np.array(context_lens)
-        vec_context = np.zeros((Config.batch_size, np.max(context_lens), Config.max_utt_length), dtype=np.int32)
-        vec_floors = np.zeros((Config.batch_size, np.max(context_lens)), dtype=np.int32)
+        vec_context = np.zeros((self.batch_size, np.max(context_lens), Config.max_utt_length), dtype=np.int32)
+        vec_floors = np.zeros((self.batch_size, np.max(context_lens)), dtype=np.int32)
 
-        vec_outs = np.zeros((Config.batch_size, np.max(out_lens)), dtype=np.int32)
+        vec_outs = np.zeros((self.batch_size, np.max(out_lens)), dtype=np.int32)
         vec_out_lens = np.array(out_lens)
         vec_out_des = np.array(out_des)
 
-        for b_id in range(Config.batch_size):
+        for b_id in range(self.batch_size):
             vec_context[b_id, 0:context_lens[b_id], :] = np.array(context_utts[b_id])
             vec_floors[b_id, 0:context_lens[b_id]] = floors[b_id]
             vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
