@@ -152,7 +152,7 @@ class Data:
         id_test = _to_id_corpus(self.test_corpus[0])
         return {'train': id_train, 'valid': id_valid, 'test': id_test}
 
-    def epoch_init(self):
+    def epoch_init(self, shuffle=True, intra_shuffle=True):
         self.pointer = 0
 
         temp_num_batch = len(self.s_dialogs) // Config.batch_size
@@ -160,7 +160,8 @@ class Data:
 
         for i in range(temp_num_batch):
             self.epoch_data.append(self.s_indexes[i*Config.batch_size : (i+1)*Config.batch_size])
-        np.random.shuffle(self.epoch_data)
+        if shuffle:
+            np.random.shuffle(self.epoch_data)
 
         self.grid_indexes = []
         for idx, b_ids in enumerate(self.epoch_data):
@@ -180,7 +181,8 @@ class Data:
                 cut_end = list(range(2, max_b_length))
 
             new_grids = [(idx, s_id, e_id) for s_id, e_id in zip(cut_start, cut_end) if s_id < min_b_length-1]
-            np.random.shuffle(new_grids)
+            if intra_shuffle and shuffle:
+                np.random.shuffle(new_grids)
             self.grid_indexes.extend(new_grids)
         self.num_batch = len(self.grid_indexes)
 
