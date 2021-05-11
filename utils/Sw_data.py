@@ -14,7 +14,7 @@ from utils.functions import normalizeStringNLTK, pad_to
 
 
 class Data:
-    def __init__(self, corpus_file, data_type):
+    def __init__(self, corpus_file, mode):
         self.data_dict = pkl.load(open(corpus_file, "rb"))
         self.train_corpus = self.process(self.data_dict["train"])
         self.valid_corpus = self.process(self.data_dict["valid"])
@@ -30,8 +30,8 @@ class Data:
         self.meta_corpus_dict = self.get_meta_corpus()
         self.dialog_corpus_dict = self.get_dialog_corpus()
 
-        self.s_metas = self.meta_corpus_dict[data_type]
-        self.s_dialogs = self.dialog_corpus_dict[data_type]
+        self.s_metas = self.meta_corpus_dict[mode]
+        self.s_dialogs = self.dialog_corpus_dict[mode]
         self.s_lengths = [len(dialog) for dialog in self.s_dialogs]
         self.s_indexes = list(np.argsort(self.s_lengths))
 
