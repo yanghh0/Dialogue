@@ -38,7 +38,7 @@ class Chatbot:
 
         self.model.apply(self.weight_init)
         self.model.word_embedding.weight.data.copy_(torch.from_numpy(np.array(Config.word2vec)))
-        self.model.embedding.weight.data[0].fill_(0)
+        self.model.word_embedding.weight.data[0].fill_(0)
 
         self.optimizer = optim.Adam(self.model.parameters(), Config.init_lr)
         self.train_summary_writer = tb.writer.FileWriter("checkpoint")
