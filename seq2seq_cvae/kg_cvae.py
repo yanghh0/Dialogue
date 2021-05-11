@@ -185,7 +185,8 @@ class KgRnnCVAE(nn.Module):
         return dec_outs, self.output_des, \
                labels, \
                bow_logits, act_logits, \
-               recog_mu, recog_logvar, prior_mu, prior_logvar
+               recog_mu, recog_logvar, prior_mu, prior_logvar, \
+               dec_out_words
 
 
 if __name__ == "__main__":
