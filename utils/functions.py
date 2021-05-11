@@ -9,6 +9,17 @@ from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.bleu_score import SmoothingFunction
 
 
+def get_bleu_stats(ref, hyps):
+    scores = []
+    for hyp in hyps:
+        try:
+            scores.append(sentence_bleu([ref], hyp, smoothing_function=SmoothingFunction().method7,
+                                        weights=[1./3, 1./3,1./3]))
+        except:
+            scores.append(0.0)
+    return np.max(scores), np.mean(scores)
+
+
 def unicodeToAscii(s):
     """Turn a Unicode string to plain ASCII.
     """
