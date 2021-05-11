@@ -114,8 +114,9 @@ class Chatbot:
                 break
 
             feed_dict = self.model.batch_feed(batch_data, use_prior=False)
-            info, _ = self.model(feed_dict, mode='train')
-            aug_elbo, elbo_loss, bow_loss, rc_ppl, rc_loss, kl_loss, kl_w = self.cal_loss(mode="train", *info)
+            dec_outs, output_des, labels, bow_logits, act_logits, recog_mu, recog_logvar, prior_mu, prior_logvar, _ = self.model(feed_dict, mode='train')
+            aug_elbo, elbo_loss, bow_loss, rc_ppl, rc_loss, kl_loss, kl_w = self.cal_loss("train", 
+                dec_outs, output_des, labels, bow_logits, act_logits, recog_mu, recog_logvar, prior_mu, prior_logvar)
 
             self.optimizer.zero_grad()
             aug_elbo.backward()
@@ -158,8 +159,9 @@ class Chatbot:
 
             feed_dict = self.model.batch_feed(batch_data, use_prior=False)
             with torch.no_grad():
-                info, _ = self.model(feed_dict, mode='valid')
-            aug_elbo, elbo_loss, bow_loss, rc_ppl, rc_loss, kl_loss, kl_w = self.cal_loss(mode="valid", *info)
+                dec_outs, output_des, labels, bow_logits, act_logits, recog_mu, recog_logvar, prior_mu, prior_logvar, _ = self.model(feed_dict, mode='valid')
+            aug_elbo, elbo_loss, bow_loss, rc_ppl, rc_loss, kl_loss, kl_w = self.cal_loss("valid", 
+                dec_outs, output_des, labels, bow_logits, act_logits, recog_mu, recog_logvar, prior_mu, prior_logvar)
 
             elbo_losses.append(elbo_loss)
             bow_losses.append(bow_loss)
@@ -185,7 +187,7 @@ class Chatbot:
 
             feed_dict = self.model.batch_feed(batch_data, use_prior=True, repeat=repeat)
             with torch.no_grad():
-                _, _, _, bow_logits, act_logits, _, _, _, _, dec_out_words = self.model(feed_dict, mode='test')
+                _, _, _, _, act_logits, _, _, _, _, dec_out_words = self.model(feed_dict, mode='test')
 
             word_outs = dec_out_words.cpu().numpy()
             act_logits = act_logits.cpu().numpy()
