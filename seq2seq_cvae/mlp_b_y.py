@@ -34,7 +34,7 @@ class MLPby(nn.Module):
         if Config.use_hcf:
             act_logits = self.act_project(inputs)
         else:
-            act_logits = inputs.new_zeros(Config.batch_size, Config.act_vocab_size)
+            act_logits = inputs.new_zeros(inputs.size(0), Config.act_vocab_size)
         return bow_logits, act_logits
 
 
