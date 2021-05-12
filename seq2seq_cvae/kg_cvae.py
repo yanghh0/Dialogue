@@ -17,7 +17,7 @@ from seq2seq_cvae.utt_encoder import UtteranceRNN
 from seq2seq_cvae.act_encoder import ActFC
 from seq2seq_cvae.mlp_b_y import MLPby
 from seq2seq_cvae.decoder import DecoderRNN
-from utils.Sw_data import Data
+from utils.Sw_data import Data, DataLoader
 from utils.functions import sample_gaussian, gaussian_kld
 
 
@@ -192,7 +192,8 @@ class KgRnnCVAE(nn.Module):
 if __name__ == "__main__":
     corpus_name = "Switchboard(SW) 1 Release 2 Corpus"
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
-    train_feed = Data(corpus_file, "train")
+    data_obj = Data(corpus_file)
+    train_feed = DataLoader(data_obj, "train")
 
     model = KgRnnCVAE()
     if Config.use_gpu:
