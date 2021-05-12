@@ -102,7 +102,7 @@ class KgRnnCVAE(nn.Module):
                     continue
                 multipliers = [1] * len(val.shape)
                 multipliers[0] = repeat
-                tiled_feed_dict[key] = np.tile(val, multipliers)
+                tiled_feed_dict[key] = val.repeat(multipliers)
             feed_dict = tiled_feed_dict
 
         if Config.use_gpu:
