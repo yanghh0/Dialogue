@@ -3,7 +3,7 @@ import sys
 import time
 import socket
 
-HOST = '172.17.0.1'
+HOST = ''
 PORT = 21567
 BUFSIZ = 1024
 agent_svr_addr = (HOST, PORT)
