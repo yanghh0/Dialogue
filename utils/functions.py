@@ -1,5 +1,7 @@
 
+import os
 import re
+import glob
 import torch
 import unicodedata
 import itertools
@@ -115,6 +117,13 @@ def print_loss(prefix, loss_names, losses, postfix):
     return avg_losses
 
 
+def get_checkpoint_state(ckp_dir):
+    files = os.path.join(ckp_dir, "*.pth")
+    files = glob.glob(files)
+    files.sort(key=os.path.getmtime)
+    return len(files) > 0 and files[-1] or None
+
+
 if __name__ == "__main__":
     s = " do you like china? it's a good place. EOS\r\n"
     print(normalizeString(s))
@@ -130,3 +139,5 @@ if __name__ == "__main__":
 
     m = binaryMatrix(outputs)
     print(m)
+
+
