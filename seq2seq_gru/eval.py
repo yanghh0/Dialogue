@@ -65,11 +65,11 @@ class QAEvaluator:
             decoder_hidden = encoder_hidden[:Config.decoder_n_layers]
 
             # Initialize decoder input with SOS_token
-            decoder_input = torch.ones(1, 1, device=self.device, dtype=torch.long) * SOS_token
+            decoder_input = torch.ones(1, 1, dtype=torch.long) * SOS_token
 
             # Initialize tensors to append decoded words to
-            all_tokens = torch.zeros([0], device=self.device, dtype=torch.long)
-            all_scores = torch.zeros([0], device=self.device)
+            all_tokens = torch.zeros([0], dtype=torch.long)
+            all_scores = torch.zeros([0])
 
             # Iteratively decode one word token at a time
             for _ in range(max_length):
@@ -92,7 +92,7 @@ class QAEvaluator:
 if __name__ == "__main__":
     corpus_name = "cornell movie-dialogs corpus"
     datafile = os.path.join("..", "datasets", corpus_name, "formatted_movie_lines.txt")
-    model_name = os.path.join("checkpoint", "model_loss_1.967.chkpt")
+    model_name = os.path.join("checkpoint", "model_loss_2.462.chkpt")
 
     data_obj = Data()
     data_obj.build_alphabet(datafile)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
             indexes_inputs = torch.LongTensor(indexes_inputs).transpose(0, 1)
 
             # Decode sentence with evaluator
-            tokens, scores = evaluator.eval(indexes_inputs, input_lengths, max_length=config.max_sentence_length)
+            tokens, scores = evaluator.eval(indexes_inputs, input_lengths, max_length=Config.max_sentence_length)
 
             # indexes -> words
             decoded_words = [data_obj.word_alphabet.index2token[token.item()] for token in tokens]
