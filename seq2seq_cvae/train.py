@@ -208,9 +208,9 @@ class Chatbot:
             true_des = feed_dict["output_des"].cpu().numpy()
             local_t += 1
 
-            word_vocab = self.test_feed.word_alphabet.index2token
-            topic_vocab = self.test_feed.topic_alphabet.index2token
-            act_vocab = self.test_feed.act_alphabet.index2token
+            word_vocab = self.data_obj.word_alphabet.index2token
+            topic_vocab = self.data_obj.topic_alphabet.index2token
+            act_vocab = self.data_obj.act_alphabet.index2token
 
             for b_id in range(self.test_feed.batch_size):
                 dest.write("Batch %d index %d of topic %s\n" % (local_t, b_id, topic_vocab[true_topics[b_id]]))
