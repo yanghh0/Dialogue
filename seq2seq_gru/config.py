@@ -8,7 +8,7 @@ class Config():
     encoder_n_layers = 2
     decoder_n_layers = 2
     dropout = 0.1
-    batch_size = 64
+    batch_size = 128
     learning_rate = 0.0001
     decoder_learning_ratio = 5.0
     clip = 50.0
@@ -18,4 +18,4 @@ class Config():
     use_gpu = True
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     beam_size = 2
-    max_sentence_length = 10
+    max_sentence_length = 12
