@@ -101,7 +101,7 @@ class DecoderRNN(nn.Module):
         for time in range(Config.max_utt_length + 1):
             if cell_output is None:
                 next_input_id = dec_init_state.new_full((batch_size,), SOS_token, dtype=torch.long)
-                done = dec_init_state.new_zeros(batch_size, dtype=torch.uint8)
+                done = dec_init_state.new_zeros(batch_size, dtype=torch.bool)
                 cell_state = dec_init_state
             else:
                 cell_output = self.fc(cell_output)
