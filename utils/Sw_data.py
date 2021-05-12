@@ -14,7 +14,7 @@ from utils.functions import normalizeStringNLTK, pad_to
 
 
 class Data:
-    def __init__(self, corpus_file, mode):
+    def __init__(self, corpus_file):
         self.data_dict = pkl.load(open(corpus_file, "rb"))
         self.train_corpus = self.process(self.data_dict["train"])
         self.valid_corpus = self.process(self.data_dict["valid"])
@@ -29,17 +29,6 @@ class Data:
         self.utt_corpus_dict = self.get_utt_corpus()
         self.meta_corpus_dict = self.get_meta_corpus()
         self.dialog_corpus_dict = self.get_dialog_corpus()
-
-        self.s_metas = self.meta_corpus_dict[mode]
-        self.s_dialogs = self.dialog_corpus_dict[mode]
-        self.s_lengths = [len(dialog) for dialog in self.s_dialogs]
-        self.s_indexes = list(np.argsort(self.s_lengths))
-
-        self.pointer = 0
-        self.num_batch = 0
-        self.epoch_data = []
-        self.grid_indexes = []
-        self.batch_size = 1 if mode == "test" else Config.batch_size
 
         print("Done loading corpus!")
 
@@ -152,6 +141,21 @@ class Data:
         id_valid = _to_id_corpus(self.valid_corpus[0])
         id_test = _to_id_corpus(self.test_corpus[0])
         return {'train': id_train, 'valid': id_valid, 'test': id_test}
+
+
+class DataLoader:
+    def __init__(self, data_obj, mode):
+        self.data_obj = data_obj
+        self.s_metas = self.data_obj.meta_corpus_dict[mode]
+        self.s_dialogs = self.data_obj.dialog_corpus_dict[mode]
+        self.s_lengths = [len(dialog) for dialog in self.s_dialogs]
+        self.s_indexes = list(np.argsort(self.s_lengths))
+
+        self.pointer = 0
+        self.num_batch = 0
+        self.epoch_data = []
+        self.grid_indexes = []
+        self.batch_size = 1 if mode == "test" else Config.batch_size
 
     def epoch_init(self, shuffle=True, intra_shuffle=True):
         self.pointer = 0
@@ -281,11 +285,12 @@ if __name__ == "__main__":
     corpus_name = "Switchboard(SW) 1 Release 2 Corpus"
     corpus_file = os.path.join("..", "datasets", corpus_name, "full_swda_clean_42da_sentiment_dialog_corpus.p")
 
-    obj = Data(corpus_file, "train")
-    obj.epoch_init()
+    data_obj = Data(corpus_file)
+    data_loader = DataLoader(data_obj, "train")
+    data_loader.epoch_init()
     iteration = 0
     while True:
-        batch_data = obj.next_batch()
+        batch_data = data_loader.next_batch()
         if batch_data is None:
             break
         iteration += 1
