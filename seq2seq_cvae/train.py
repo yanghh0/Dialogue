@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch import optim
 import numpy as np
 import torch.nn.functional as F
-from utils.Sw_data import Data
+from utils.Sw_data import Data, DataLoader
 from utils.functions import print_loss
 from seq2seq_cvae.kg_cvae import KgRnnCVAE
 from seq2seq_cvae.config import Config
@@ -31,9 +31,10 @@ UNK_token = 3  # Unkonw token
 
 class Chatbot:
     def __init__(self, corpus_file):
-        self.train_feed = Data(corpus_file, "train")
-        self.valid_feed = Data(corpus_file, "valid")
-        self.test_feed = Data(corpus_file, "test")
+        self.data_obj = Data(corpus_file)
+        self.train_feed = DataLoader(self.data_obj, "train")
+        self.valid_feed = DataLoader(self.data_obj, "valid")
+        self.test_feed = DataLoader(self.data_obj, "test")
         self.model = KgRnnCVAE()
 
         self.model.apply(self.weight_init)
@@ -249,7 +250,7 @@ class Chatbot:
 
     def train_model(self):
         if not self.forward_only:
-            dm_checkpoint_path = os.path.join("checkpoint", self.model.__class__.__name__+ "-%d.pth")
+            dm_checkpoint_path = os.path.join("checkpoint", self.model.__class__.__name__+ "-%d-%.3f.pth")
             for epoch in range(Config.max_epoch):
                 self.model.train()
                 self.train_feed.epoch_init()
@@ -265,8 +266,10 @@ class Chatbot:
                 done_epoch = epoch + 1
                 if valid_loss < self.best_dev_loss:
                     print("Save model!!")
-                    torch.save(self.model.state_dict(), dm_checkpoint_path %(epoch))
+                    torch.save(self.model.state_dict(), dm_checkpoint_path % (epoch, valid_loss))
                     self.best_dev_loss = valid_loss
+            print("Best validation loss %f" % self.best_dev_loss)
+            print("Done training")
         else:
             self.model.eval()
 
