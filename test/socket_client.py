@@ -2,8 +2,8 @@
 import socket
 
 
-HOST = ''
-PORT = 3022
+HOST = '103.46.128.53'
+PORT = 24876
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
 
